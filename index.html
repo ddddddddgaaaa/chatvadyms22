@@ -623,10 +623,9 @@
     <div id="auth-modal" class="auth-modal">
         <div class="auth-card">
             <h2>Вход</h2>
-            <p>Укажи канал и свое имя. После этого подключится чат и откроется сайт.</p>
+            <p>Укажи канал. После этого подключится чат и откроется сайт.</p>
             <div class="auth-form">
                 <input type="text" id="auth-channel-input" placeholder="Канал Twitch без @" autocomplete="off">
-                <input type="text" id="auth-name-input" placeholder="Твое имя" autocomplete="off">
                 <button class="btn-main btn-purple" type="button" onclick="applyAuthSettings()">ВОЙТИ</button>
             </div>
             <div class="auth-note">Данные сохраняются в браузере и подставляются автоматически.</div>
@@ -652,7 +651,6 @@
         let renderedChatMessages = [];
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
         let currentChannelName = localStorage.getItem('bot_channel_name') || '';
-        let currentProfileName = localStorage.getItem('bot_profile_name') || '';
         const MODS = [];
         const VIPS = [];
         const B_MOD = '[MODERATOR] ';
@@ -768,7 +766,6 @@
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
             localStorage.setItem('bot_participant_states', JSON.stringify(participantStates));
             localStorage.setItem('bot_channel_name', currentChannelName);
-            localStorage.setItem('bot_profile_name', currentProfileName);
         }
         function sanitizeChannelName(value) {
             return String(value || '').trim().toLowerCase().replace(/^@+/, '').replace(/\s+/g, '');
@@ -818,7 +815,6 @@
         }
         function openAuthModal() {
             document.getElementById('auth-channel-input').value = currentChannelName;
-            document.getElementById('auth-name-input').value = currentProfileName;
             document.getElementById('auth-modal').style.display = 'flex';
         }
         function closeAuthModal() {
@@ -907,17 +903,11 @@
         }
         function applyAuthSettings() {
             const channelValue = sanitizeChannelName(document.getElementById('auth-channel-input').value);
-            const nameValue = String(document.getElementById('auth-name-input').value || '').trim();
             if (!channelValue) {
                 alert('Введите название канала.');
                 return;
             }
-            if (!nameValue) {
-                alert('Введите свое имя.');
-                return;
-            }
             currentChannelName = channelValue;
-            currentProfileName = nameValue;
             saveToStorage();
             updateChannelUi();
             connectTwitchSocket();
@@ -1048,9 +1038,6 @@
         function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); participantStates = {}; userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateParticipantPreview(); updateFullParticipantsList(); userMessages = {}; rerollCount = 0; saveToStorage(); } }
         document.getElementById('import-textarea').addEventListener('input', updateImportApplyState);
         document.getElementById('auth-channel-input').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') applyAuthSettings();
-        });
-        document.getElementById('auth-name-input').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') applyAuthSettings();
         });
         initCloudProfiles();
