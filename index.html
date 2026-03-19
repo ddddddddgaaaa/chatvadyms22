@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Бот для прокачек от 0savelka0</title>
+    <title>Бот для прокачек от 0savelka0 - BLUE NEON</title>
     <style>
         :root {
             --bg-color: #020205;
@@ -17,6 +17,7 @@
             --glow-blue: 0 0 0 transparent;
             --glow-purple: 0 0 0 transparent;
             --text-color: #f1f5f9;
+            --soft-light: #fbcfe8;
         }
         body {
             background-color: var(--bg-color);
@@ -83,7 +84,7 @@
             background: rgba(255, 20, 147, 0.22);
             transform: scale(1.02);
             box-shadow: none;
-            color: white;
+            color: var(--soft-light);
         }
         .btn-purple {
             border-color: var(--accent-neon-blue);
@@ -95,7 +96,7 @@
         .btn-purple:hover {
             background: rgba(255, 20, 147, 0.22);
             box-shadow: none;
-            color: white;
+            color: var(--soft-light);
         }
         .timer-display {
             font-size: 42px;
@@ -179,7 +180,7 @@
         input[type="number"], input[type="text"] {
             background: var(--dark-purple) !important;
             border: 1px solid var(--accent-neon-blue) !important;
-            color: white !important;
+            color: var(--soft-light) !important;
             box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
             padding: 8px;
             border-radius: 5px;
@@ -267,7 +268,7 @@
         }
         .red-participants .btn-main:hover {
             background: rgba(99, 102, 241, 0.22);
-            color: white;
+            color: var(--soft-light);
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -368,7 +369,7 @@
         function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateParticipantPreview(); updateFullParticipantsList(); userMessages = {}; rerollCount = 0; } }
         const socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
         socket.onopen = () => { socket.send('CAP REQ :twitch.tv/tags'); socket.send('PASS SCHMOOPIIE'); socket.send('NICK justinfan123'); socket.send('JOIN #0savelka0'); };
-        socket.onmessage = (event) => { const data = event.data; if (data.includes('PRIVMSG')) { let user = ''; let msg = ''; if (data.startsWith('@')) { const parts = data.split(' '); user = parts[1].split('!')[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } else { const parts = data.split('!'); user = parts[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } const time = new Date().toLocaleTimeString(); if (!userMessages[user]) userMessages[user] = []; userMessages[user].push({ time, text: msg }); if (msg === currentCodeword) { participants.add(user); document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); } } };
+        socket.onmessage = (event) => { const data = event.data; if (data.includes('PRIVMSG')) { let user = ''; let msg = ''; if (data.startsWith('@')) { const parts = data.split(' '); user = parts[1].split('!')[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } else { const parts = data.split('!'); user = parts[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } const normalizedMessage = msg.trim().toLowerCase(); const normalizedCodeword = currentCodeword.trim().toLowerCase(); const time = new Date().toLocaleTimeString(); if (!userMessages[user]) userMessages[user] = []; userMessages[user].push({ time, text: msg }); if (normalizedMessage === normalizedCodeword) { participants.add(user); document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); } } };
         function initTwitchEmbed() { const frame = document.getElementById('twitch-chat-frame'); if (!frame) return; const parentDomain = window.location.hostname || 'localhost'; frame.src = `https://www.twitch.tv/embed/vadyms22/chat?parent=${encodeURIComponent(parentDomain)}`; }
         renderLeaderboard();
         updateFullParticipantsList();
