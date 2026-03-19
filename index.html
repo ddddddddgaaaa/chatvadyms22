@@ -267,6 +267,27 @@
             padding: 5px 10px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
+        .participant-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .participant-row.is-inactive {
+            opacity: 0.45;
+        }
+        .participant-row label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+        }
+        .participant-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #22c55e;
+            cursor: pointer;
+        }
         .orange-chat {
             flex: 1;
             border: 1px solid var(--panel-border);
@@ -466,6 +487,7 @@
         let leaders = JSON.parse(localStorage.getItem('bot_top_leaders')) || [];
         let globalHistory = JSON.parse(localStorage.getItem('bot_global_history')) || [];
         let participantProfiles = JSON.parse(localStorage.getItem('bot_participant_profiles')) || {};
+        let participantStates = JSON.parse(localStorage.getItem('bot_participant_states')) || {};
         let participants = new Set();
         let wheelParticipants = [];
         let userMessages = {};
@@ -505,6 +527,22 @@
         function getSavedTelegram(name) {
             const key = getProfileKey(name);
             return key ? participantProfiles[key]?.tg || '' : '';
+        }
+        function isParticipantActive(name) {
+            const key = getProfileKey(name);
+            return participantStates[key]?.active !== false;
+        }
+        function setParticipantActive(name, active) {
+            const key = getProfileKey(name);
+            if (!key) return;
+            participantStates[key] = {
+                ...(participantStates[key] || {}),
+                name,
+                active,
+            };
+        }
+        function getActiveParticipants() {
+            return Array.from(participants).filter(isParticipantActive);
         }
         function saveParticipantTelegram(name, tg) {
             const key = getProfileKey(name);
@@ -574,12 +612,28 @@
             localStorage.setItem('bot_top_leaders', JSON.stringify(leaders));
             localStorage.setItem('bot_global_history', JSON.stringify(globalHistory));
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
+            localStorage.setItem('bot_participant_states', JSON.stringify(participantStates));
         }
         function renderLeaderboard() { leaders.sort((a,b) => b.amount - a.amount); const container = document.getElementById('leaderboard'); container.innerHTML = ''; leaders.forEach((item, i) => { container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div class="btn-group" style="display:flex; align-items:center; gap:5px;"><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b><button class="btn-edit-row" onclick="editLeader(${i})" style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;">✏️</button><button onclick="deleteLeader(${i})" style="background:none; border:none; color:#555; cursor:pointer; font-size:10px;">🗑️</button></div></div></div>`; }); saveToStorage(); }
         function editLeader(index) { let l = leaders[index]; let name = prompt('Никнейм:', l.name); let amount = prompt('Сумма вывода (₽):', l.amount); let deposits = prompt('Сумма депозитов (₽):', l.deposits || 0); let tg = prompt('Telegram:', l.tg || getSavedTelegram(l.name) || ''); let site = prompt('Сайт:', l.site || ''); if (name !== null) { l.name = name; l.amount = parseFloat(amount) || 0; l.deposits = parseFloat(deposits) || 0; l.tg = tg; l.site = site; saveParticipantTelegram(l.name, tg); syncParticipantTelegramToCloud(l.name, tg); renderLeaderboard(); } }
         function deleteLeader(index) { if(confirm('Удалить игрока из топа?')) { leaders.splice(index, 1); renderLeaderboard(); } }
-        function copyParticipants() { const list = Array.from(participants).map((u, i) => `${i + 1}. ${u}`).join('\n'); if (list) { navigator.clipboard.writeText(list).then(() => { alert('Список участников скопирован в буфер обмена!'); }).catch(err => { alert('Ошибка при копировании: ' + err); }); } else { alert('Список участников пуст!'); } }
-        function updateFullParticipantsList() { const container = document.getElementById('full-participants-list'); if (!container) return; const arr = Array.from(participants); let html = ''; arr.forEach((u, i) => { html += `<div>${i+1}. <b>${u}</b></div>`; }); container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>'; }
+        function copyParticipants() { const list = getActiveParticipants().map((u, i) => `${i + 1}. ${u}`).join('\n'); if (list) { navigator.clipboard.writeText(list).then(() => { alert('Список участников скопирован в буфер обмена!'); }).catch(err => { alert('Ошибка при копировании: ' + err); }); } else { alert('Список участников пуст!'); } }
+        function toggleParticipantActive(name, active) {
+            setParticipantActive(name, active);
+            syncParticipantsState();
+        }
+        function updateFullParticipantsList() {
+            const container = document.getElementById('full-participants-list');
+            if (!container) return;
+            const arr = Array.from(participants);
+            let html = '';
+            arr.forEach((u, i) => {
+                const checked = isParticipantActive(u) ? 'checked' : '';
+                const inactiveClass = isParticipantActive(u) ? '' : ' is-inactive';
+                html += `<div class="participant-row${inactiveClass}"><span>${i+1}. <b>${u}</b></span><label><input type="checkbox" ${checked} onchange="toggleParticipantActive('${u.replace(/'/g, "\\'")}', this.checked)"></label></div>`;
+            });
+            container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>';
+        }
         function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
         function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
         function enableTimerEdit() { timerRunning = false; const d = document.getElementById('timer'), i = document.getElementById('timer-input'); d.style.display = 'none'; i.style.display = 'block'; i.value = d.innerText; i.focus(); i.onblur = () => { let p = i.value.split(':').map(Number).reverse(); timerSeconds = (p[0]||0) + (p[1]||0)*60 + (p[2]||0)*3600; updateTimerDisplay(); i.style.display = 'none'; d.style.display = 'block'; }; }
@@ -599,9 +653,10 @@
                 .filter(Boolean);
         }
         function syncParticipantsState() {
-            document.getElementById('user-count').innerText = participants.size;
+            document.getElementById('user-count').innerText = getActiveParticipants().length;
             updateFullParticipantsList();
-            wheelParticipants = Array.from(participants);
+            wheelParticipants = getActiveParticipants();
+            saveToStorage();
         }
         function openImportParticipants() {
             document.getElementById('import-participants-modal').style.display = 'flex';
@@ -648,6 +703,7 @@
             parsedNames.forEach(name => {
                 const beforeSize = participants.size;
                 participants.add(name);
+                setParticipantActive(name, true);
                 if (participants.size > beforeSize) added++;
             });
             syncParticipantsState();
@@ -669,15 +725,15 @@
         function editWinnerCounter(type) { if (!currentWinner) return; let val = prompt('Введите новое значение:'); if (val !== null) { if (type === 'count') document.getElementById('win-count-stat').innerText = val; if (type === 'sum') document.getElementById('win-sum-stat').innerText = parseInt(val).toLocaleString() + ' ₽'; if (type === 'dep') document.getElementById('win-dep-stat').innerText = parseInt(val).toLocaleString() + ' ₽'; } }
         function showWinnerRef(name) { closeModals(); currentWinner = name; winTimerActive = true; const winNickElement = document.getElementById('win-nick'); const timerLabel = document.getElementById('win-timer-label'); const statusLabel = document.getElementById('win-status-label'); winNickElement.classList.remove('winner-responded'); timerLabel.classList.remove('timer-responded'); statusLabel.classList.remove('winner-responded'); statusLabel.style.color = 'var(--accent-neon-blue)'; statusLabel.innerText = 'WINNER FOUND'; winNickElement.innerText = name; let role = getRoleData(name, userRolesCache[name.toLowerCase()] || ''); winNickElement.className = role.cls; const statCard = document.getElementById('win-stat-card'); statCard.className = 'win-card'; statCard.style.borderColor = 'var(--accent-neon-blue)'; document.getElementById('reroll-counter-display').innerText = 'Рероллов: ' + rerollCount; const userHistory = globalHistory.filter(h => h.name.toLowerCase() === name.toLowerCase()); const totalWon = userHistory.reduce((sum, h) => sum + (h.amount || 0), 0); const totalDep = userHistory.reduce((sum, h) => sum + (h.deposit || 0), 0); const savedTg = getSavedTelegram(name) || userHistory.find(h => h.tg && h.tg !== '---')?.tg || leaders.find(l => l.name.toLowerCase() === name.toLowerCase())?.tg || ''; document.getElementById('win-count-stat').innerText = userHistory.length; document.getElementById('win-sum-stat').innerText = totalWon.toLocaleString() + ' ₽'; document.getElementById('win-dep-stat').innerText = totalDep.toLocaleString() + ' ₽'; const histCont = document.getElementById('win-drop-history'); histCont.innerHTML = userHistory.map(h => `<div class=\"hist-row\" style=\"display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;\"><span>${h.date.split(' ')[0]} - ${h.site}</span><div><b style=\"color:var(--accent-neon-blue)\">${h.amount > 0 ? '+' + h.amount + ' ₽' : ''}</b><b style=\"color:white; margin-left:5px;\">${h.deposit > 0 ? '(-' + h.deposit + ' ₽)' : ''}</b></div></div>`).reverse().join('') || '<div style=\"color:#555; text-align:center; margin-top:20px;\">Первая победа!</div>'; document.getElementById('win-amount-input').value = ''; document.getElementById('win-deposit-input').value = ''; document.getElementById('win-tg-input').value = savedTg; document.getElementById('win-site-input').value = ''; document.getElementById('winner-screen').style.display = 'flex'; const hCont = document.getElementById('win-chat-history'); hCont.innerHTML = (userMessages[name] || []).map(m => `<div style=\"padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;\"><small style=\"color:#555;\">${m.time}</small> ${m.text}</div>`).reverse().join(''); let s = 0; clearInterval(window.winInt); window.winInt = setInterval(() => { if (winTimerActive) { s++; let sec = s%60, min = Math.floor(s/60), hr = Math.floor(min/60); document.getElementById('win-timer-label').innerText = `${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000); }
         function updateParticipantPreview() { const container = document.getElementById('participant-list'); if (!container) return; const arr = Array.from(participants).reverse(); const preview = arr.slice(0, 8); container.innerHTML = preview.map(u => { let badge = userRolesCache[u.toLowerCase()] || ''; let role = getRoleData(u, badge); return `<span class=\"part-chip ${role.cls}\">${u}</span>`; }).join(''); }
-        function openWheel() { if (participants.size < 1) return alert('Нет участников!'); wheelParticipants = Array.from(participants); document.getElementById('wheel-modal').style.display = 'flex'; document.getElementById('elim-log').innerText = ''; currentRotation = 0; setSpinMode('elimination'); drawWheel(0); }
+        function openWheel() { if (getActiveParticipants().length < 1) return alert('Нет участников!'); wheelParticipants = getActiveParticipants(); document.getElementById('wheel-modal').style.display = 'flex'; document.getElementById('elim-log').innerText = ''; currentRotation = 0; setSpinMode('elimination'); drawWheel(0); }
         function reSpinToHome() { rerollCount++; closeModals(); }
-        function setSpinMode(m) { selectedSpinMode = m; document.getElementById('mode-elim').style.boxShadow = m === 'elimination' ? '0 0 0 transparent' : 'none'; document.getElementById('mode-normal').style.boxShadow = m === 'normal' ? '0 0 0 transparent' : 'none'; wheelParticipants = Array.from(participants); document.getElementById('elim-log').innerText = ''; currentRotation = 0; drawWheel(0); }
+        function setSpinMode(m) { selectedSpinMode = m; document.getElementById('mode-elim').style.boxShadow = m === 'elimination' ? '0 0 0 transparent' : 'none'; document.getElementById('mode-normal').style.boxShadow = m === 'normal' ? '0 0 0 transparent' : 'none'; wheelParticipants = getActiveParticipants(); document.getElementById('elim-log').innerText = ''; currentRotation = 0; drawWheel(0); }
         function executeSpin() { if (wheelParticipants.length === 0) return; document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
         function drawWheel(angle) { const canvas = document.getElementById('wheelCanvas'), ctx = canvas.getContext('2d'); const p = wheelParticipants, slice = (Math.PI * 2) / (p.length || 1); ctx.clearRect(0,0,500,500); p.forEach((name, i) => { const sectorColor = wheelColors[i % wheelColors.length]; ctx.beginPath(); ctx.fillStyle = sectorColor; ctx.moveTo(250,250); ctx.arc(250,250,240, angle + i*slice, angle + (i+1)*slice); ctx.fill(); ctx.save(); ctx.translate(250,250); ctx.rotate(angle + i*slice + slice/2); ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px Inter'; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.fillText(name.substring(0, 18), 95, 6); ctx.restore(); }); ctx.beginPath(); ctx.arc(250,250,240, 0, Math.PI*2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 5; ctx.stroke(); }
         function startSpin(mode) { let duration = parseInt(document.getElementById('dur-slider').value) * 1000; let startTimestamp = null; let extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5); let startAngle = currentRotation; let targetAngle = startAngle + extraRotation; function animate(timestamp) { if (!startTimestamp) startTimestamp = timestamp; let progress = timestamp - startTimestamp; let t = progress / duration; let ease = 1 - Math.pow(1 - t, 3); currentRotation = startAngle + (targetAngle - startAngle) * ease; if (progress < duration) { drawWheel(currentRotation); requestAnimationFrame(animate); } else { currentRotation = targetAngle; drawWheel(currentRotation); let totalSlices = wheelParticipants.length; let sliceWidth = (Math.PI * 2) / totalSlices; let normalizedAngle = (currentRotation % (Math.PI * 2)); if (normalizedAngle < 0) normalizedAngle += (Math.PI * 2); let winningIndex = Math.floor((Math.PI * 1.5 - normalizedAngle) / sliceWidth) % totalSlices; if (winningIndex < 0) winningIndex += totalSlices; if (mode === 'normal') { showWinnerRef(wheelParticipants[winningIndex]); document.getElementById('roll-button').disabled = false; } else { let eliminatedUser = wheelParticipants[winningIndex]; document.getElementById('elim-log').innerText = 'ВЫБЫЛ: ' + eliminatedUser; playTick(); wheelParticipants.splice(winningIndex, 1); if (wheelParticipants.length === 1) { setTimeout(() => { showWinnerRef(wheelParticipants[0]); document.getElementById('roll-button').disabled = false; }, 1200); } else { setTimeout(() => { drawWheel(currentRotation); startSpin('elimination'); }, 800); } } } } requestAnimationFrame(animate); }
-        function instantRoll() { if (participants.size < 1) return alert('Нет участников!'); let arr = Array.from(participants); let win = arr[Math.floor(Math.random() * arr.length)]; showWinnerRef(win); }
+        function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); let win = arr[Math.floor(Math.random() * arr.length)]; showWinnerRef(win); }
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); document.getElementById('winner-screen').style.display = 'none'; winTimerActive = false; clearInterval(window.winInt); }
-        function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateParticipantPreview(); updateFullParticipantsList(); userMessages = {}; rerollCount = 0; } }
+        function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); participantStates = {}; userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateParticipantPreview(); updateFullParticipantsList(); userMessages = {}; rerollCount = 0; saveToStorage(); } }
         const socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
         socket.onopen = () => { socket.send('CAP REQ :twitch.tv/tags'); socket.send('PASS SCHMOOPIIE'); socket.send('NICK justinfan123'); socket.send(`JOIN #${CHANNEL_NAME}`); };
         socket.onmessage = (event) => {
@@ -718,8 +774,8 @@
 
             if (normalizedMessage === normalizedCodeword) {
                 participants.add(user);
-                document.getElementById('user-count').innerText = participants.size;
-                updateFullParticipantsList();
+                setParticipantActive(user, true);
+                syncParticipantsState();
             }
 
             if (currentWinner && user.toLowerCase() === currentWinner.toLowerCase()) {
