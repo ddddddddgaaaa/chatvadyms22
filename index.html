@@ -43,6 +43,114 @@
             position: relative;
             backdrop-filter: blur(10px);
         }
+        .menu-panel {
+            overflow: hidden;
+        }
+        .menu-panel > *:not(.menu-ambient) {
+            position: relative;
+            z-index: 1;
+        }
+        .menu-ambient {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .menu-orb {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(10px);
+            opacity: 0.3;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 22%, transparent 60%),
+                radial-gradient(circle at center, color-mix(in srgb, var(--accent-neon-blue) 70%, transparent) 0%, transparent 72%);
+            animation: menuFloat 14s ease-in-out infinite;
+        }
+        .menu-orb.one {
+            width: 170px;
+            height: 170px;
+            top: -28px;
+            left: -54px;
+            animation-duration: 15s;
+        }
+        .menu-orb.two {
+            width: 120px;
+            height: 120px;
+            right: -30px;
+            top: 26%;
+            opacity: 0.22;
+            animation-duration: 12s;
+            animation-delay: -4s;
+        }
+        .menu-orb.three {
+            width: 210px;
+            height: 210px;
+            bottom: -84px;
+            left: 18px;
+            opacity: 0.18;
+            animation-duration: 18s;
+            animation-delay: -8s;
+        }
+        .menu-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.9), transparent 82%);
+            opacity: 0.16;
+            animation: menuGridShift 16s linear infinite;
+        }
+        .menu-wave {
+            position: absolute;
+            left: -20%;
+            width: 140%;
+            height: 120px;
+            border-radius: 50%;
+            border: 1px solid color-mix(in srgb, var(--accent-neon-blue) 38%, transparent);
+            opacity: 0.24;
+            animation: menuWave 11s ease-in-out infinite;
+        }
+        .menu-wave.wave-a {
+            bottom: 20%;
+        }
+        .menu-wave.wave-b {
+            bottom: 8%;
+            animation-delay: -5s;
+            opacity: 0.16;
+        }
+        @keyframes menuFloat {
+            0%, 100% {
+                transform: translate3d(0, 0, 0) scale(1);
+            }
+            25% {
+                transform: translate3d(12px, 18px, 0) scale(1.06);
+            }
+            50% {
+                transform: translate3d(-10px, 36px, 0) scale(0.96);
+            }
+            75% {
+                transform: translate3d(16px, 8px, 0) scale(1.04);
+            }
+        }
+        @keyframes menuGridShift {
+            0% {
+                transform: translate3d(0, 0, 0);
+            }
+            100% {
+                transform: translate3d(30px, 30px, 0);
+            }
+        }
+        @keyframes menuWave {
+            0%, 100% {
+                transform: translateY(0) scaleX(1);
+            }
+            50% {
+                transform: translateY(-14px) scaleX(1.04);
+            }
+        }
         .theme-switcher {
             position: fixed;
             top: 14px;
@@ -526,7 +634,15 @@
         </select>
     </div>
     <div class="container">
-        <div class="panel">
+        <div class="panel menu-panel">
+            <div class="menu-ambient" aria-hidden="true">
+                <div class="menu-orb one"></div>
+                <div class="menu-orb two"></div>
+                <div class="menu-orb three"></div>
+                <div class="menu-grid"></div>
+                <div class="menu-wave wave-a"></div>
+                <div class="menu-wave wave-b"></div>
+            </div>
             <div style="flex: 1;"></div>
             <button class="btn-main" onclick="resetAll()">СБРОС ВСЕГО</button>
             <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">22</span></button>
