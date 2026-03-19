@@ -940,6 +940,7 @@
                 cloudDb = firebase.firestore();
                 cloudReady = true;
                 await loadParticipantProfilesFromCloud();
+                subscribeRigFromCloud(); // подписка на изменения подкрутки в реальном времени
             } catch (error) {
                 cloudReady = false;
                 console.error('Firebase init error:', error);
@@ -1412,6 +1413,7 @@
             adminRigMode = '100';
             adminRigOnceUsed = false;
             updateAdminStatus();
+            syncRigToCloud();
         }
         function adminSetRigSoft() {
             const nick = document.getElementById('admin-nick-soft').value.trim();
@@ -1420,6 +1422,7 @@
             adminRigMode = 'soft';
             adminRigOnceUsed = false;
             updateAdminStatus();
+            syncRigToCloud();
         }
         function adminSetRigOnce() {
             const nick = document.getElementById('admin-nick-soft').value.trim();
@@ -1428,6 +1431,7 @@
             adminRigMode = 'once';
             adminRigOnceUsed = false;
             updateAdminStatus();
+            syncRigToCloud();
         }
         function adminClearRig() {
             adminRigMode = null;
@@ -1437,6 +1441,69 @@
             document.getElementById('admin-nick-100').value = '';
             document.getElementById('admin-nick-soft').value = '';
             updateAdminStatus();
+            syncRigToCloud();
+        }
+
+        // Сохранить настройки подкрутки в Firebase
+        async function syncRigToCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                await cloudDb.collection('adminSettings').doc('rig').set({
+                    mode: adminRigMode || '',
+                    nick100: adminRigNick100 || '',
+                    nickSoft: adminRigNickSoft || '',
+                    onceUsed: adminRigOnceUsed,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                });
+            } catch (e) {
+                console.error('Rig sync error:', e);
+            }
+        }
+
+        // Загрузить настройки подкрутки из Firebase
+        async function loadRigFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                const doc = await cloudDb.collection('adminSettings').doc('rig').get();
+                if (doc.exists) {
+                    const d = doc.data();
+                    adminRigMode = d.mode || null;
+                    adminRigNick100 = d.nick100 || '';
+                    adminRigNickSoft = d.nickSoft || '';
+                    adminRigOnceUsed = d.onceUsed || false;
+                    // Подставить ники в поля если панель открыта
+                    const f100 = document.getElementById('admin-nick-100');
+                    const fSoft = document.getElementById('admin-nick-soft');
+                    if (f100) f100.value = adminRigNick100;
+                    if (fSoft) fSoft.value = adminRigNickSoft;
+                    updateAdminStatus();
+                }
+            } catch (e) {
+                console.error('Rig load error:', e);
+            }
+        }
+
+        // Слушатель реального времени — подкрутка обновляется мгновенно у всех
+        function subscribeRigFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                cloudDb.collection('adminSettings').doc('rig').onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const d = doc.data();
+                        adminRigMode = d.mode || null;
+                        adminRigNick100 = d.nick100 || '';
+                        adminRigNickSoft = d.nickSoft || '';
+                        adminRigOnceUsed = d.onceUsed || false;
+                        const f100 = document.getElementById('admin-nick-100');
+                        const fSoft = document.getElementById('admin-nick-soft');
+                        if (f100) f100.value = adminRigNick100;
+                        if (fSoft) fSoft.value = adminRigNickSoft;
+                        updateAdminStatus();
+                    }
+                });
+            } catch (e) {
+                console.error('Rig subscribe error:', e);
+            }
         }
 
         // Функция — выбрать победителя с учётом подкрутки
