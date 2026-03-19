@@ -10,6 +10,17 @@
             --dark-purple: #2a1b35;
             --accent-neon-blue: #ff1493;
             --accent-neon-purple: #ff1493;
+            --accent-soft-bg: rgba(255, 20, 147, 0.08);
+            --accent-hover-bg: rgba(255, 20, 147, 0.22);
+            --accent-soft-border: rgba(255, 20, 147, 0.1);
+            --section-accent: #6366f1;
+            --section-accent-bg: rgba(99, 102, 241, 0.08);
+            --section-accent-hover: rgba(99, 102, 241, 0.22);
+            --section-accent-panel: rgba(99, 102, 241, 0.12);
+            --section-accent-border: rgba(99, 102, 241, 0.25);
+            --participant-badge-bg: rgba(168, 85, 247, 0.18);
+            --participant-badge-border: rgba(168, 85, 247, 0.45);
+            --participant-badge-text: #f5d0fe;
             --accent-red: #ef4444;
             --accent-success: #22c55e;
             --accent-success-soft: #86efac;
@@ -214,7 +225,7 @@
             cursor: pointer;
             color: var(--accent-neon-blue);
             transition: 0.4s;
-            background: rgba(255, 20, 147, 0.08);
+            background: var(--accent-soft-bg);
             text-transform: uppercase;
             letter-spacing: 2px;
             font-size: 11px;
@@ -222,16 +233,16 @@
             box-shadow: none;
         }
         .btn-codeword {
-            color: #f9a8d4;
-            border-color: #ec4899;
-            background: rgba(236, 72, 153, 0.1);
+            color: var(--soft-light);
+            border-color: var(--accent-neon-blue);
+            background: var(--accent-soft-bg);
         }
         .btn-codeword:hover {
-            color: #fde7f3;
-            background: rgba(236, 72, 153, 0.22);
+            color: #ffffff;
+            background: var(--accent-hover-bg);
         }
         .btn-main:hover {
-            background: rgba(255, 20, 147, 0.22);
+            background: var(--accent-hover-bg);
             transform: scale(1.02);
             box-shadow: none;
             color: var(--soft-light);
@@ -241,10 +252,10 @@
             color: var(--accent-neon-blue);
             text-shadow: none;
             box-shadow: none;
-            background: rgba(255, 20, 147, 0.08);
+            background: var(--accent-soft-bg);
         }
         .btn-purple:hover {
-            background: rgba(255, 20, 147, 0.22);
+            background: var(--accent-hover-bg);
             box-shadow: none;
             color: var(--soft-light);
         }
@@ -289,18 +300,18 @@
             margin-bottom: 10px;
             border-radius: 12px;
             background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255, 20, 147, 0.1);
+            border: 1px solid var(--accent-soft-border);
             border-left: 4px solid var(--accent-neon-blue);
             transition: 0.3s;
         }
         .leader-item:hover {
             border-color: var(--accent-neon-blue);
             border-left-color: var(--accent-neon-blue);
-            background: rgba(255, 20, 147, 0.05);
+            background: var(--accent-soft-bg);
         }
         .part-chip {
             font-size: 11px;
-            background: rgba(255, 20, 147, 0.1);
+            background: var(--accent-soft-bg);
             padding: 5px 12px;
             border-radius: 20px;
             border: 1px solid var(--accent-neon-blue);
@@ -377,7 +388,7 @@
         }
         .red-participants {
             flex: 1;
-            border: 3px solid #4f46e5;
+            border: 3px solid var(--section-accent);
             border-radius: 18px;
             background: var(--dark-purple);
             display: flex;
@@ -387,12 +398,12 @@
         .red-participants h4 {
             margin: 0;
             padding: 12px 15px;
-            background: rgba(79, 70, 229, 0.12);
-            color: #a5b4fc;
+            background: var(--section-accent-panel);
+            color: var(--soft-light);
             font-weight: 700;
             font-size: 13px;
             letter-spacing: 1px;
-            border-bottom: 1px solid rgba(79, 70, 229, 0.25);
+            border-bottom: 1px solid var(--section-accent-border);
         }
         #full-participants-list {
             flex: 1;
@@ -427,9 +438,9 @@
             justify-content: center;
             padding: 3px 8px;
             border-radius: 999px;
-            background: rgba(168, 85, 247, 0.18);
-            border: 1px solid rgba(168, 85, 247, 0.45);
-            color: #f5d0fe;
+            background: var(--participant-badge-bg);
+            border: 1px solid var(--participant-badge-border);
+            color: var(--participant-badge-text);
             font-size: 10px;
             font-weight: 800;
             letter-spacing: 0.08em;
@@ -463,12 +474,12 @@
             text-shadow: none;
         }
         .red-participants .btn-main {
-            border-color: #6366f1;
-            color: #6366f1;
-            background: rgba(99, 102, 241, 0.08);
+            border-color: var(--section-accent);
+            color: var(--section-accent);
+            background: var(--section-accent-bg);
         }
         .red-participants .btn-main:hover {
-            background: rgba(99, 102, 241, 0.22);
+            background: var(--section-accent-hover);
             color: var(--soft-light);
         }
         .import-modal-content {
