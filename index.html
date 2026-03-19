@@ -112,7 +112,7 @@
         }
         .chat-container {
             flex-grow: 1;
-            overflow-y: auto;
+            overflow: hidden;
             background: var(--dark-purple);
             border-radius: 15px;
             padding: 0;
@@ -122,6 +122,21 @@
             justify-content: flex-end;
             border: 1px solid var(--accent-neon-blue);
         }
+        #chat-inner {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .chat-msg {
+            padding: 10px;
+            border-radius: 8px;
+            border-bottom: 1px solid rgba(255, 20, 147, 0.1);
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chat-msg.user-owner { border: 1px solid var(--accent-red); background: rgba(214, 48, 49, 0.15); color: #ff7675 !important; }
+        .chat-msg.user-mod { border: 1px solid var(--twitch-mod); background: rgba(0, 184, 148, 0.15); color: #55efc4 !important; }
+        .chat-msg.user-vip { border: 1px solid var(--twitch-vip); background: rgba(224, 5, 185, 0.15); color: #fd79a8 !important; }
         .leader-item {
             display: flex;
             flex-direction: column;
@@ -188,6 +203,21 @@
         .stats-table td { padding: 10px; border-bottom: 1px solid #222; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: var(--accent-neon-blue); border-radius: 10px; box-shadow: 0 0 0 transparent; }
+        @keyframes neonPulse {
+            0% { text-shadow: 0 0 10px var(--accent-neon-blue), 0 0 20px var(--accent-neon-blue); }
+            100% { text-shadow: 0 0 25px var(--accent-neon-blue), 0 0 50px var(--accent-neon-blue), 0 0 80px var(--accent-neon-blue); }
+        }
+        #win-nick.winner-responded,
+        #win-status-label.winner-responded {
+            animation: none !important;
+            color: var(--accent-neon-blue) !important;
+        }
+        #win-timer-label.timer-responded {
+            animation: none !important;
+            background: rgba(59, 130, 246, 0.2) !important;
+            box-shadow: 0 0 0 transparent !important;
+            border-color: var(--accent-neon-blue) !important;
+        }
         .win-response-msg {
             background: rgba(15, 23, 42, 0.9) !important;
             border-left: 4px solid var(--accent-neon-blue) !important;
@@ -217,7 +247,7 @@
         }
         .red-participants {
             flex: 1;
-            border: 3px solid #4f46e5;
+            border: 1px solid var(--panel-border);
             border-radius: 18px;
             background: var(--dark-purple);
             display: flex;
@@ -227,12 +257,12 @@
         .red-participants h4 {
             margin: 0;
             padding: 12px 15px;
-            background: rgba(79, 70, 229, 0.12);
-            color: #a5b4fc;
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
             font-weight: 700;
             font-size: 13px;
             letter-spacing: 1px;
-            border-bottom: 1px solid rgba(79, 70, 229, 0.25);
+            border-bottom: 1px solid rgba(96, 165, 250, 0.3);
         }
         #full-participants-list {
             flex: 1;
@@ -260,6 +290,14 @@
             color: var(--accent-neon-blue);
             text-shadow: none;
         }
+        .red-participants {
+            border: 3px solid #4f46e5;
+        }
+        .red-participants h4 {
+            background: rgba(79, 70, 229, 0.12);
+            color: #a5b4fc;
+            border-bottom: 1px solid rgba(79, 70, 229, 0.25);
+        }
         .red-participants .btn-main {
             border-color: #6366f1;
             color: #6366f1;
@@ -268,6 +306,13 @@
         .red-participants .btn-main:hover {
             background: rgba(99, 102, 241, 0.22);
             color: white;
+        }
+        #twitch-chat-frame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            border-radius: 14px;
+            background: var(--dark-purple);
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -297,8 +342,10 @@
                     <button class="btn-main" style="margin: 10px 12px; width: calc(100% - 24px);" onclick="copyParticipants()">СКОПИРОВАТЬ УЧАСТНИКОВ</button>
                 </div>
                 <div class="orange-chat">
-                    <h3>TWITCH CHAT VADYMS22</h3>
-                    <iframe id="twitch-chat-frame" class="chat-container" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write" style="width: 100%; border: 0;"></iframe>
+                    <h3>ОБЩИЙ ЧАТ VADYMS22</h3>
+                    <div class="chat-container">
+                        <iframe id="twitch-chat-frame" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write"></iframe>
+                    </div>
                 </div>
             </div>
             <div class="watermark">(TG - vadymtm90)</div>
@@ -306,6 +353,114 @@
         <div class="panel">
             <h3 style="margin:0 0 15px 0; color: var(--accent-neon-blue); text-shadow: none;">ТОП (ВЫВОДЫ)</h3>
             <div id="leaderboard" style="overflow-y:auto; flex-grow: 1;"></div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+    </div>
+    <div id="history-modal" class="modal">
+        <div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;">
+            <div class="close-x" onclick="closeModals()">&times;</div>
+            <h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Полная история выпадений</h2>
+            <div style="width: 100%; overflow-y: auto; margin-top: 20px;">
+                <table class="stats-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 12px;">Дата</th>
+                            <th style="padding: 12px;">Никнейм</th>
+                            <th style="padding: 12px;">Telegram</th>
+                            <th style="padding: 12px;">Проект</th>
+                            <th style="padding: 12px;">Выводы (₽)</th>
+                            <th style="padding: 12px;">Депы (₽)</th>
+                            <th style="padding: 12px;">Рероллы</th>
+                            <th style="padding: 12px;">Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body"></tbody>
+                </table>
+            </div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+    </div>
+    <div id="stats-modal" class="modal">
+        <div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;">
+            <div class="close-x" onclick="closeModals()">&times;</div>
+            <h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Статистика по сайтам</h2>
+            <div style="width: 100%; overflow-y: auto; margin-top: 20px;">
+                <table class="stats-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Проект / Сайт</th>
+                            <th>Побед</th>
+                            <th>Общ. Выводы (₽)</th>
+                            <th>Общ. Депозиты (₽)</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stats-body"></tbody>
+                </table>
+            </div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+    </div>
+    <div id="wheel-modal" class="modal">
+        <div class="modal-content">
+            <div class="close-x" onclick="closeModals()">&times;</div>
+            <div style="position: relative;">
+                <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #fff; z-index: 10;"></div>
+                <canvas id="wheelCanvas" width="500" height="500"></canvas>
+            </div>
+            <div class="wheel-controls" style="width: 300px; display: flex; flex-direction: column; gap: 15px; margin-left: 20px;">
+                <h3 style="margin: 0; text-align: center; color: var(--accent-neon-blue);">Настройки</h3>
+                <div id="elim-log" style="text-align: center; color: var(--accent-neon-blue); font-weight: bold; min-height: 20px; font-size: 14px;"></div>
+                <button id="mode-elim" class="btn-main btn-purple" onclick="setSpinMode('elimination')">НА ВЫБЫВАНИЕ</button>
+                <button id="mode-normal" class="btn-main" onclick="setSpinMode('normal')">ОБЫЧНЫЙ ВЫБОР</button>
+                <div style="text-align: center; margin: 10px 0;">
+                    <span style="font-size: 13px; color: #888;">Время: <span id="dur-val" style="color:white">5</span> сек.</span>
+                    <input type="range" id="dur-slider" min="1" max="15" value="5" oninput="document.getElementById('dur-val').innerText = this.value" style="width:100%; margin-top:5px;">
+                </div>
+                <button id="roll-button" class="btn-main btn-purple" style="padding: 20px; font-size: 18px;" onclick="executeSpin()">КРУТИТЬ! 🚀</button>
+            </div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+    </div>
+    <div id="winner-screen" class="modal">
+        <div class="modal-content" style="flex-direction: column; width: 90%; height: 90%; background: #05050a; padding: 40px;">
+            <div class="close-x" onclick="closeModals()">&times;</div>
+            <div id="win-header-block" style="display: flex; justify-content: space-between; align-items: center; transition: 0.5s;">
+                <div>
+                    <span id="win-status-label" style="color: var(--accent-neon-blue); font-weight: 800; letter-spacing: 2px;">WINNER FOUND</span>
+                    <h2 id="win-nick" style="font-size: 48px; margin: 0; color: #fff; text-shadow: none;">---</h2>
+                    <div id="reroll-counter-display" style="color: var(--accent-neon-blue); font-size: 14px; font-weight: bold; margin-top: 5px;">Рероллов: 0</div>
+                </div>
+                <div id="win-timer-label" style="border: 1px solid var(--accent-neon-blue); padding: 10px 20px; border-radius: 10px; color: var(--accent-neon-blue); text-shadow: none; font-size: 24px; font-family: 'Orbitron';">00:00:00</div>
+            </div>
+            <div class="win-grid" style="display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; flex-grow: 1; margin-top: 20px; overflow: hidden;">
+                <div class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column;">
+                    <h4 style="margin-top:0; color: var(--accent-neon-blue);">Сообщения в этом стриме:</h4>
+                    <div id="win-chat-history" style="overflow-y:auto; flex-grow:1;"></div>
+                </div>
+                <div id="win-stat-card" class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--accent-neon-blue);">
+                    <h4 style="margin-top:0; color: var(--accent-neon-blue);">История игрока (Global):</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                        <div style="display: flex; gap: 20px;">
+                            <div><small>Выигрышей:</small> <div id="win-count-stat" class="editable-stat" onclick="editWinnerCounter('count')" style="font-size: 20px; font-weight: bold;">0</div></div>
+                            <div><small>Всего вывел:</small> <div id="win-sum-stat" class="editable-stat" onclick="editWinnerCounter('sum')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div>
+                        </div>
+                        <div><small>Всего депозитов:</small> <div id="win-dep-stat" class="editable-stat" onclick="editWinnerCounter('dep')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div>
+                    </div>
+                    <div id="win-drop-history" style="overflow-y:auto; flex-grow:1; border-top: 1px solid #333; padding-top: 10px;"></div>
+                </div>
+                <div class="win-form" style="background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--accent-neon-blue);">
+                    <h3 style="margin:0; color: var(--accent-neon-blue);">Записать результат</h3>
+                    <input type="number" id="win-amount-input" placeholder="Сумма вывода (RUB)">
+                    <input type="number" id="win-deposit-input" placeholder="Сумма депозита (RUB)">
+                    <input type="text" id="win-tg-input" placeholder="Telegram @username">
+                    <input type="text" id="win-site-input" placeholder="Сайт / Проект">
+                    <button class="btn-main btn-purple" style="margin-top:10px" onclick="saveWinnerStats()">СОХРАНИТЬ 📊</button>
+                    <button class="btn-main" onclick="window.open('https://followage.showmasterokda.com/?user=' + currentWinner, '_blank')">ПОДПИСКИ 🔗</button>
+                    <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
+                    <button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button>
+                </div>
+            </div>
             <div class="watermark">(TG - vadymtm90)</div>
         </div>
     </div>
@@ -320,7 +475,16 @@
         let rerollCount = 0;
         let currentRotation = 0;
         let currentCodeword = "22";
-        const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
+        const wheelColors = [
+            '#0f172a','#1e2937','#334155','#475569','#64748b',
+            '#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8',
+            '#7e22ce','#2e1065','#3b0764','#4c1d95','#581c87',
+            '#1f2937','#374151','#4b5563','#6b7280','#111827',
+            '#1e2937','#334155','#475569','#64748b','#0f172a',
+            '#312e81','#4338ca','#4c1d95','#6b21a8','#7e22ce',
+            '#2e1065','#3b0764','#4c1d95','#581c87','#1f2937',
+            '#374151','#4b5563','#6b7280','#111827'
+        ];
         const CREATOR = '0savelka0';
         const MODS = [];
         const VIPS = [];
@@ -329,29 +493,508 @@
         const B_OWNER = '[OWNER] ';
         let userRolesCache = {};
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playTick() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); }
-        function playAlarm() { for(let i=0; i<3; i++) { setTimeout(() => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(); osc.stop(audioCtx.currentTime + 0.4); }, i * 500); } }
-        function getRoleData(user, badgeStr = '') { let low = user.toLowerCase(); if(badgeStr.includes('broadcaster') || low === CREATOR) return { cls: 'user-owner', prefix: B_OWNER }; if(badgeStr.includes('moderator') || MODS.includes(low)) return { cls: 'user-mod', prefix: B_MOD }; if(badgeStr.includes('vip') || VIPS.includes(low)) return { cls: 'user-vip', prefix: B_VIP }; return { cls: '', prefix: '' }; }
-        function saveToStorage() { localStorage.setItem('bot_top_leaders', JSON.stringify(leaders)); localStorage.setItem('bot_global_history', JSON.stringify(globalHistory)); }
-        function renderLeaderboard() { leaders.sort((a,b) => b.amount - a.amount); const container = document.getElementById('leaderboard'); container.innerHTML = ''; leaders.forEach((item, i) => { container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div class="btn-group" style="display:flex; align-items:center; gap:5px;"><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b><button class="btn-edit-row" onclick="editLeader(${i})" style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;">✏️</button><button onclick="deleteLeader(${i})" style="background:none; border:none; color:#555; cursor:pointer; font-size:10px;">🗑️</button></div></div></div>`; }); saveToStorage(); }
-        function editLeader(index) { let l = leaders[index]; let name = prompt('Никнейм:', l.name); let amount = prompt('Сумма вывода (₽):', l.amount); let deposits = prompt('Сумма депозитов (₽):', l.deposits || 0); let tg = prompt('Telegram:', l.tg || ''); let site = prompt('Сайт:', l.site || ''); if (name !== null) { l.name = name; l.amount = parseFloat(amount) || 0; l.deposits = parseFloat(deposits) || 0; l.tg = tg; l.site = site; renderLeaderboard(); } }
-        function deleteLeader(index) { if(confirm('Удалить игрока из топа?')) { leaders.splice(index, 1); renderLeaderboard(); } }
-        function copyParticipants() { const list = Array.from(participants).map((u, i) => `${i + 1}. ${u}`).join('\n'); if (list) { navigator.clipboard.writeText(list).then(() => { alert('Список участников скопирован в буфер обмена!'); }).catch(err => { alert('Ошибка при копировании: ' + err); }); } else { alert('Список участников пуст!'); } }
-        function updateFullParticipantsList() { const container = document.getElementById('full-participants-list'); if (!container) return; const arr = Array.from(participants); let html = ''; arr.forEach((u, i) => { html += `<div>${i+1}. <b>${u}</b></div>`; }); container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>'; }
-        function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
-        function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
-        function enableTimerEdit() { timerRunning = false; const d = document.getElementById('timer'), i = document.getElementById('timer-input'); d.style.display = 'none'; i.style.display = 'block'; i.value = d.innerText; i.focus(); i.onblur = () => { let p = i.value.split(':').map(Number).reverse(); timerSeconds = (p[0]||0) + (p[1]||0)*60 + (p[2]||0)*3600; updateTimerDisplay(); i.style.display = 'none'; d.style.display = 'block'; }; }
-        function changeCodeword() { let newWord = prompt('Введите новое кодовое слово (сейчас: ' + currentCodeword + '):'); if (newWord !== null && newWord.trim() !== '') { currentCodeword = newWord.trim(); document.getElementById('codeword-display').innerText = currentCodeword; } }
-        setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
-        function openWheel() { alert('Рулетка сохранена, но я не трогал ее логику. Если хочешь, в следующем сообщении верну все модалки и полный функционал 1 в 1.'); }
-        function instantRoll() { if (participants.size < 1) return alert('Нет участников!'); let arr = Array.from(participants); alert('Победитель: ' + arr[Math.floor(Math.random() * arr.length)]); }
-        function openStats() { alert('Блок аналитики можно вернуть следующим сообщением, если нужен именно полный исходный функционал.'); }
-        function openHistory() { alert('Блок истории можно вернуть следующим сообщением, если нужен именно полный исходный функционал.'); }
-        function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateFullParticipantsList(); userMessages = {}; rerollCount = 0; } }
+        function playTick() {
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+        }
+        function playAlarm() {
+            for(let i=0; i<3; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.type = 'square'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+                }, i * 500);
+            }
+        }
+        function getRoleData(user, badgeStr = "") {
+            let low = user.toLowerCase();
+            if(badgeStr.includes("broadcaster") || low === CREATOR) return { cls: 'user-owner', prefix: B_OWNER };
+            if(badgeStr.includes("moderator") || MODS.includes(low)) return { cls: 'user-mod', prefix: B_MOD };
+            if(badgeStr.includes("vip") || VIPS.includes(low)) return { cls: 'user-vip', prefix: B_VIP };
+            return { cls: '', prefix: '' };
+        }
+        function saveToStorage() {
+            localStorage.setItem('bot_top_leaders', JSON.stringify(leaders));
+            localStorage.setItem('bot_global_history', JSON.stringify(globalHistory));
+        }
+        function renderLeaderboard() {
+            leaders.sort((a,b) => b.amount - a.amount);
+            const container = document.getElementById('leaderboard'); container.innerHTML = "";
+            leaders.forEach((item, i) => {
+                container.innerHTML += `
+                    <div class="leader-item">
+                        <div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span><b>${i+1}.</b> ${item.name}</span>
+                            <div class="btn-group" style="display:flex; align-items:center; gap:5px;">
+                                <b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b>
+                                <button class="btn-edit-row" onclick="editLeader(${i})" style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;">✏️</button>
+                                <button onclick="deleteLeader(${i})" style="background:none; border:none; color:#555; cursor:pointer; font-size:10px;">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="leader-info" style="font-size:11px; color:#666; margin-top:5px;">${item.tg ? 'TG: '+item.tg : ''} ${item.site ? '| '+item.site : ''}</div>
+                    </div>`;
+            });
+            saveToStorage();
+        }
+        function editLeader(index) {
+            let l = leaders[index];
+            let name = prompt("Никнейм:", l.name);
+            let amount = prompt("Сумма вывода (₽):", l.amount);
+            let deposits = prompt("Сумма депозитов (₽):", l.deposits || 0);
+            let tg = prompt("Telegram:", l.tg || "");
+            let site = prompt("Сайт:", l.site || "");
+            if (name !== null) {
+                l.name = name;
+                l.amount = parseFloat(amount) || 0;
+                l.deposits = parseFloat(deposits) || 0;
+                l.tg = tg;
+                l.site = site;
+                renderLeaderboard();
+            }
+        }
+        function deleteLeader(index) {
+            if(confirm("Удалить игрока из топа?")) {
+                leaders.splice(index, 1);
+                renderLeaderboard();
+            }
+        }
+        function saveWinnerStats() {
+            const amt = parseFloat(document.getElementById('win-amount-input').value) || 0;
+            const dep = parseFloat(document.getElementById('win-deposit-input').value) || 0;
+            const tg = document.getElementById('win-tg-input').value.trim();
+            const site = document.getElementById('win-site-input').value.trim() || "---";
+            if(amt > 0 || dep > 0) {
+                let existing = leaders.find(l => l.name.toLowerCase() === currentWinner.toLowerCase());
+                if(existing) {
+                    existing.amount += amt;
+                    if(!existing.deposits) existing.deposits = 0;
+                    existing.deposits += dep;
+                    if(tg) existing.tg = tg;
+                    if(site !== "---") existing.site = site;
+                }
+                else {
+                    leaders.push({name: currentWinner, amount: amt, deposits: dep, tg: tg, site: site});
+                }
+            }
+            globalHistory.push({
+                name: currentWinner,
+                amount: amt,
+                deposit: dep,
+                site: site,
+                tg: tg || "---",
+                rerolls: rerollCount,
+                date: new Date().toLocaleDateString() + " " + new Date().toLocaleTimeString()
+            });
+            rerollCount = 0;
+            renderLeaderboard();
+            closeModals();
+        }
+        function openStats() {
+            const stats = {};
+            globalHistory.forEach(h => {
+                const siteName = h.site || "---";
+                if(!stats[siteName]) stats[siteName] = { count: 0, sum: 0, deps: 0 };
+                stats[siteName].count++;
+                stats[siteName].sum += (h.amount || 0);
+                stats[siteName].deps += (h.deposit || 0);
+            });
+            const body = document.getElementById('stats-body');
+            body.innerHTML = "";
+            Object.keys(stats).sort().forEach(site => {
+                body.innerHTML += `
+                    <tr>
+                        <td><b>${site}</b></td>
+                        <td>${stats[site].count}</td>
+                        <td>${stats[site].sum.toLocaleString()} ₽</td>
+                        <td>${stats[site].deps.toLocaleString()} ₽</td>
+                        <td>
+                            <button class="btn-edit-row" style="color:var(--accent-neon-blue); background:none; border:none; cursor:pointer;" onclick="editProjectName('${site}')" title="Переименовать проект">✏️</button>
+                            <button class="btn-delete-row" style="color:red; background:none; border:none; cursor:pointer;" onclick="deleteProjectRecords('${site}')" title="Удалить все записи по проекту">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+            document.getElementById('stats-modal').style.display = 'flex';
+        }
+        function editProjectName(oldName) {
+            let newName = prompt("Новое название проекта:", oldName);
+            if (newName && newName !== oldName) {
+                globalHistory.forEach(h => {
+                    if (h.site === oldName) h.site = newName;
+                });
+                leaders.forEach(l => {
+                    if (l.site === oldName) l.site = newName;
+                });
+                saveToStorage();
+                openStats();
+                renderLeaderboard();
+            }
+        }
+        function deleteProjectRecords(siteName) {
+            if(confirm(`Удалить ВСЕ записи истории по проекту "${siteName}"? Это обновит статистику.`)) {
+                globalHistory = globalHistory.filter(h => h.site !== siteName);
+                saveToStorage();
+                openStats();
+            }
+        }
+        function openHistory() {
+            const body = document.getElementById('history-body');
+            body.innerHTML = "";
+            [...globalHistory].reverse().forEach((h, index) => {
+                const realIndex = globalHistory.length - 1 - index;
+                body.innerHTML += `
+                    <tr>
+                        <td><small>${h.date}</small></td>
+                        <td style="color:var(--accent-neon-blue); font-weight:bold;">${h.name}</td>
+                        <td style="color:#aaa;">${h.tg || '---'}</td>
+                        <td>${h.site}</td>
+                        <td style="color:var(--accent-neon-blue); font-weight:bold;">${(h.amount || 0).toLocaleString()} ₽</td>
+                        <td style="color:white; font-weight:bold;">${(h.deposit || 0).toLocaleString()} ₽</td>
+                        <td style="text-align:center;">${h.rerolls || 0}</td>
+                        <td style="text-align:center;">
+                             <button style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;" onclick="editHistoryItem(${realIndex})" title="Редактировать">✏️</button>
+                             <button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
+            document.getElementById('history-modal').style.display = 'flex';
+        }
+        function editHistoryItem(index) {
+            let h = globalHistory[index];
+            let name = prompt("Игрок:", h.name);
+            let tg = prompt("Telegram:", h.tg);
+            let site = prompt("Проект:", h.site);
+            let amount = prompt("Вывод (₽):", h.amount);
+            let deposit = prompt("Депозит (₽):", h.deposit);
+            let date = prompt("Дата и время:", h.date);
+            if (name !== null) {
+                h.name = name;
+                h.tg = tg;
+                h.site = site;
+                h.amount = parseFloat(amount) || 0;
+                h.deposit = parseFloat(deposit) || 0;
+                h.date = date;
+                saveToStorage();
+                openHistory();
+                renderLeaderboard();
+            }
+        }
+        function deleteHistoryItem(index) {
+            if(confirm("Удалить эту запись из истории?")) {
+                globalHistory.splice(index, 1);
+                saveToStorage();
+                openHistory();
+            }
+        }
+        function editWinnerCounter(type) {
+            if (!currentWinner) return;
+            let val = prompt("Введите новое значение:");
+            if (val !== null) {
+                if (type === 'count') document.getElementById('win-count-stat').innerText = val;
+                if (type === 'sum') document.getElementById('win-sum-stat').innerText = parseInt(val).toLocaleString() + " ₽";
+                if (type === 'dep') document.getElementById('win-dep-stat').innerText = parseInt(val).toLocaleString() + " ₽";
+            }
+        }
+        function showWinnerRef(name) {
+            closeModals();
+            currentWinner = name;
+            winTimerActive = true;
+            const winNickElement = document.getElementById('win-nick');
+            const timerLabel = document.getElementById('win-timer-label');
+            const statusLabel = document.getElementById('win-status-label');
+            winNickElement.classList.remove('winner-responded');
+            timerLabel.classList.remove('timer-responded');
+            statusLabel.classList.remove('winner-responded');
+            statusLabel.style.color = 'var(--accent-neon-blue)';
+            statusLabel.innerText = "WINNER FOUND";
+            winNickElement.innerText = name;
+            let role = getRoleData(name, userRolesCache[name.toLowerCase()] || "");
+            winNickElement.className = role.cls;
+            const statCard = document.getElementById('win-stat-card');
+            statCard.className = 'win-card';
+            statCard.style.borderColor = 'var(--accent-neon-blue)';
+            document.getElementById('reroll-counter-display').innerText = "Рероллов: " + rerollCount;
+            const userHistory = globalHistory.filter(h => h.name.toLowerCase() === name.toLowerCase());
+            const totalWon = userHistory.reduce((sum, h) => sum + (h.amount || 0), 0);
+            const totalDep = userHistory.reduce((sum, h) => sum + (h.deposit || 0), 0);
+            document.getElementById('win-count-stat').innerText = userHistory.length;
+            document.getElementById('win-sum-stat').innerText = totalWon.toLocaleString() + " ₽";
+            document.getElementById('win-dep-stat').innerText = totalDep.toLocaleString() + " ₽";
+            const histCont = document.getElementById('win-drop-history');
+            histCont.innerHTML = userHistory.map(h => `
+                <div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;">
+                    <span>${h.date.split(' ')[0]} - ${h.site}</span>
+                    <div>
+                        <b style="color:var(--accent-neon-blue)">${h.amount > 0 ? '+' + h.amount + ' ₽' : ''}</b>
+                        <b style="color:white; margin-left:5px;">${h.deposit > 0 ? '(-' + h.deposit + ' ₽)' : ''}</b>
+                    </div>
+                </div>
+            `).reverse().join('') || '<div style="color:#555; text-align:center; margin-top:20px;">Первая победа!</div>';
+            document.getElementById('win-amount-input').value = "";
+            document.getElementById('win-deposit-input').value = "";
+            document.getElementById('win-tg-input').value = "";
+            document.getElementById('win-site-input').value = "";
+            document.getElementById('winner-screen').style.display = 'flex';
+            const hCont = document.getElementById('win-chat-history');
+            hCont.innerHTML = (userMessages[name] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
+            let s = 0;
+            clearInterval(window.winInt);
+            window.winInt = setInterval(() => {
+                if (winTimerActive) { s++; let sec = s%60, min = Math.floor(s/60), hr = Math.floor(min/60);
+                document.getElementById('win-timer-label').innerText = `${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; }
+            }, 1000);
+        }
         const socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
-        socket.onopen = () => { socket.send('CAP REQ :twitch.tv/tags'); socket.send('PASS SCHMOOPIIE'); socket.send('NICK justinfan123'); socket.send('JOIN #0savelka0'); };
-        socket.onmessage = (event) => { const data = event.data; if (data.includes('PRIVMSG')) { let user = ''; let msg = ''; if (data.startsWith('@')) { const parts = data.split(' '); user = parts[1].split('!')[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } else { const parts = data.split('!'); user = parts[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } const time = new Date().toLocaleTimeString(); if (!userMessages[user]) userMessages[user] = []; userMessages[user].push({ time, text: msg }); if (msg === currentCodeword) { participants.add(user); document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); } } };
-        function initTwitchEmbed() { const frame = document.getElementById('twitch-chat-frame'); if (!frame) return; const parentDomain = window.location.hostname || 'localhost'; frame.src = `https://www.twitch.tv/embed/vadyms22/chat?parent=${encodeURIComponent(parentDomain)}`; }
+        socket.onopen = () => {
+            socket.send('CAP REQ :twitch.tv/tags');
+            socket.send('PASS SCHMOOPIIE');
+            socket.send('NICK justinfan123');
+            socket.send('JOIN #0savelka0');
+        };
+        socket.onmessage = (event) => {
+            const data = event.data;
+            if (data.includes('PRIVMSG')) {
+                let badgeStr = "";
+                let user = "";
+                let msg = "";
+                if (data.startsWith('@')) {
+                    const parts = data.split(' ');
+                    const rawTags = parts[0];
+                    if(rawTags.includes('badges=')) {
+                        badgeStr = rawTags.split('badges=')[1].split(';')[0];
+                    }
+                    user = parts[1].split('!')[0].substring(1);
+                    msg = data.split('PRIVMSG #0savelka0 :')[1].trim();
+                } else {
+                    const parts = data.split('!');
+                    user = parts[0].substring(1);
+                    msg = data.split('PRIVMSG #0savelka0 :')[1].trim();
+                }
+                userRolesCache[user.toLowerCase()] = badgeStr;
+                const time = new Date().toLocaleTimeString();
+
+                if (!userMessages[user]) userMessages[user] = [];
+                userMessages[user].push({ time: time, text: msg });
+
+                if (msg === currentCodeword) {
+                    participants.add(user);
+                    document.getElementById('user-count').innerText = participants.size;
+                    updateParticipantPreview();
+                    updateFullParticipantsList();
+                }
+
+                if (currentWinner && user.toLowerCase() === currentWinner.toLowerCase()) {
+                    if (winTimerActive) {
+                        winTimerActive = false;
+                        const timerLabel = document.getElementById('win-timer-label');
+                        const statusLabel = document.getElementById('win-status-label');
+                        const nick = document.getElementById('win-nick');
+                        timerLabel.style.backgroundColor = 'rgba(255, 20, 147, 0.2)';
+                        timerLabel.classList.add('timer-responded');
+                        statusLabel.innerText = "WINNER RESPONDED!";
+                        statusLabel.style.color = 'var(--accent-neon-blue)';
+                        statusLabel.classList.add('winner-responded');
+                        nick.classList.add('winner-responded');
+                    }
+                }
+                if (currentWinner && user.toLowerCase() === currentWinner.toLowerCase()) {
+                    const winnerScreen = document.getElementById('winner-screen');
+                    if (winnerScreen && winnerScreen.style.display === 'flex') {
+                        const hCont = document.getElementById('win-chat-history');
+                        if (hCont) {
+                            const newMsgDiv = document.createElement('div');
+                            newMsgDiv.style.cssText = "padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;";
+                            newMsgDiv.classList.add("win-response-msg");
+                            newMsgDiv.innerHTML = `<small style="color:#555;">${time}</small> ${msg}`;
+                            hCont.insertBefore(newMsgDiv, hCont.firstChild);
+                            hCont.scrollTop = 0;
+                        }
+                    }
+                }
+            }
+        };
+        function initTwitchEmbed() {
+            const frame = document.getElementById('twitch-chat-frame');
+            if (!frame) return;
+            const parentDomain = window.location.hostname || 'localhost';
+            frame.src = `https://www.twitch.tv/embed/vadyms22/chat?parent=${encodeURIComponent(parentDomain)}`;
+        }
+        function updateParticipantPreview() {
+            const container = document.getElementById('participant-list');
+            if (!container) return;
+            const arr = Array.from(participants).reverse();
+            const preview = arr.slice(0, 8);
+            container.innerHTML = preview.map(u => {
+                let badge = userRolesCache[u.toLowerCase()] || "";
+                let role = getRoleData(u, badge);
+                return `<span class="part-chip ${role.cls}">${u}</span>`;
+            }).join('');
+        }
+        function updateFullParticipantsList() {
+            const container = document.getElementById('full-participants-list');
+            if (!container) return;
+            const arr = Array.from(participants);
+            let html = '';
+            arr.forEach((u, i) => {
+                html += `<div>${i+1}. <b>${u}</b></div>`;
+            });
+            container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>';
+        }
+        function copyParticipants() {
+            const list = Array.from(participants).map((u, i) => `${i + 1}. ${u}`).join('\n');
+            if (list) {
+                navigator.clipboard.writeText(list).then(() => {
+                    alert('Список участников скопирован в буфер обмена!');
+                }).catch(err => {
+                    alert('Ошибка при копировании: ' + err);
+                });
+            } else {
+                alert('Список участников пуст!');
+            }
+        }
+        function updateTimerDisplay() {
+            const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0');
+            document.getElementById('timer').innerText = `${h}:${m}:${s}`;
+        }
+        function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
+        function enableTimerEdit() {
+            timerRunning = false; const d = document.getElementById('timer'), i = document.getElementById('timer-input');
+            d.style.display = 'none'; i.style.display = 'block'; i.value = d.innerText; i.focus();
+            i.onblur = () => { let p = i.value.split(':').map(Number).reverse(); timerSeconds = (p[0]||0) + (p[1]||0)*60 + (p[2]||0)*3600; updateTimerDisplay(); i.style.display = 'none'; d.style.display = 'block'; };
+        }
+        function changeCodeword() {
+            let newWord = prompt("Введите новое кодовое слово (сейчас: " + currentCodeword + "):");
+            if (newWord !== null && newWord.trim() !== "") {
+                currentCodeword = newWord.trim();
+                document.getElementById('codeword-display').innerText = currentCodeword;
+            }
+        }
+        setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
+        function openWheel() {
+            if (participants.size < 1) return alert("Нет участников!");
+            wheelParticipants = Array.from(participants);
+            document.getElementById('wheel-modal').style.display = 'flex';
+            document.getElementById('elim-log').innerText = "";
+            currentRotation = 0;
+            setSpinMode('elimination');
+            drawWheel(0);
+        }
+        function reSpinToHome() { rerollCount++; closeModals(); }
+        function setSpinMode(m) {
+            selectedSpinMode = m;
+            document.getElementById('mode-elim').style.boxShadow = m === 'elimination' ? '0 0 0 transparent' : 'none';
+            document.getElementById('mode-normal').style.boxShadow = m === 'normal' ? '0 0 0 transparent' : 'none';
+            wheelParticipants = Array.from(participants);
+            document.getElementById('elim-log').innerText = "";
+            currentRotation = 0;
+            drawWheel(0);
+        }
+        function executeSpin() {
+            if (wheelParticipants.length === 0) return;
+            document.getElementById('roll-button').disabled = true;
+            startSpin(selectedSpinMode);
+        }
+        function drawWheel(angle) {
+            const canvas = document.getElementById('wheelCanvas'), ctx = canvas.getContext('2d');
+            const p = wheelParticipants, slice = (Math.PI * 2) / (p.length || 1);
+            ctx.clearRect(0,0,500,500);
+            p.forEach((name, i) => {
+                const sectorColor = wheelColors[i % wheelColors.length];
+                ctx.beginPath();
+                ctx.fillStyle = sectorColor;
+                ctx.moveTo(250,250);
+                ctx.arc(250,250,240, angle + i*slice, angle + (i+1)*slice);
+                ctx.fill();
+                ctx.save();
+                ctx.translate(250,250);
+                ctx.rotate(angle + i*slice + slice/2);
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 15px Inter";
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = "rgba(0,0,0,0.95)";
+                ctx.fillText(name.substring(0, 18), 95, 6);
+                ctx.restore();
+            });
+            ctx.beginPath();
+            ctx.arc(250,250,240, 0, Math.PI*2);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        }
+        function startSpin(mode) {
+            let duration = parseInt(document.getElementById('dur-slider').value) * 1000;
+            let startTimestamp = null;
+            let extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5);
+            let startAngle = currentRotation;
+            let targetAngle = startAngle + extraRotation;
+            function animate(timestamp) {
+                if (!startTimestamp) startTimestamp = timestamp;
+                let progress = timestamp - startTimestamp;
+                let t = progress / duration;
+                let ease = 1 - Math.pow(1 - t, 3);
+                currentRotation = startAngle + (targetAngle - startAngle) * ease;
+
+                if (progress < duration) {
+                    drawWheel(currentRotation);
+                    requestAnimationFrame(animate);
+                } else {
+                    currentRotation = targetAngle;
+                    drawWheel(currentRotation);
+                    let totalSlices = wheelParticipants.length;
+                    let sliceWidth = (Math.PI * 2) / totalSlices;
+                    let normalizedAngle = (currentRotation % (Math.PI * 2));
+                    if (normalizedAngle < 0) normalizedAngle += (Math.PI * 2);
+                    let winningIndex = Math.floor((Math.PI * 1.5 - normalizedAngle) / sliceWidth) % totalSlices;
+                    if (winningIndex < 0) winningIndex += totalSlices;
+
+                    if (mode === 'normal') {
+                        showWinnerRef(wheelParticipants[winningIndex]);
+                        document.getElementById('roll-button').disabled = false;
+                    }
+                    else {
+                        let eliminatedUser = wheelParticipants[winningIndex];
+                        document.getElementById('elim-log').innerText = "ВЫБЫЛ: " + eliminatedUser;
+                        playTick();
+                        wheelParticipants.splice(winningIndex, 1);
+                        if (wheelParticipants.length === 1) {
+                            setTimeout(() => { showWinnerRef(wheelParticipants[0]); document.getElementById('roll-button').disabled = false; }, 1200);
+                        } else {
+                            setTimeout(() => { drawWheel(currentRotation); startSpin('elimination'); }, 800);
+                        }
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        function instantRoll() {
+            if (participants.size < 1) return alert("Нет участников!");
+            let arr = Array.from(participants);
+            let win = arr[Math.floor(Math.random() * arr.length)];
+            showWinnerRef(win);
+        }
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+            document.getElementById('winner-screen').style.display = 'none';
+            winTimerActive = false;
+            clearInterval(window.winInt);
+        }
+        function resetAll() {
+            if(confirm("ПОЛНЫЙ СБРОС УЧАСТНИКОВ?")) {
+                participants.clear();
+                userRolesCache = {};
+                document.getElementById('user-count').innerText = "0";
+                updateParticipantPreview();
+                updateFullParticipantsList();
+                userMessages = {};
+                rerollCount = 0;
+            }
+        }
         renderLeaderboard();
         updateFullParticipantsList();
         initTwitchEmbed();
