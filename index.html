@@ -276,6 +276,27 @@
         .participant-row.is-inactive {
             opacity: 0.45;
         }
+        .participant-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .participant-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.18);
+            border: 1px solid rgba(168, 85, 247, 0.45);
+            color: #f5d0fe;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
         .participant-row label {
             display: inline-flex;
             align-items: center;
@@ -628,9 +649,11 @@
             const arr = Array.from(participants);
             let html = '';
             arr.forEach((u, i) => {
-                const checked = isParticipantActive(u) ? 'checked' : '';
-                const inactiveClass = isParticipantActive(u) ? '' : ' is-inactive';
-                html += `<div class="participant-row${inactiveClass}"><span>${i+1}. <b>${u}</b></span><label><input type="checkbox" ${checked} onchange="toggleParticipantActive('${u.replace(/'/g, "\\'")}', this.checked)"></label></div>`;
+                const active = isParticipantActive(u);
+                const checked = active ? 'checked' : '';
+                const inactiveClass = active ? '' : ' is-inactive';
+                const badge = active ? '<span class="participant-badge">УЧАСТВУЕТ</span>' : '';
+                html += `<div class="participant-row${inactiveClass}"><span class="participant-name">${badge}<span>${i+1}. <b>${u}</b></span></span><label><input type="checkbox" ${checked} onchange="toggleParticipantActive('${u.replace(/'/g, "\\'")}', this.checked)"></label></div>`;
             });
             container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>';
         }
