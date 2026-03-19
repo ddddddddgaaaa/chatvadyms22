@@ -1332,45 +1332,11 @@
             let startTimestamp = null; 
             let startAngle = currentRotation; 
             
-            // Перед анимацией определяем, есть ли активная подкрутка и целевой индекс
-            let riggedWinner = pickRiggedWinner(wheelParticipants);
-            let hasActiveRig = riggedWinner !== null && wheelParticipants.some(n => n.toLowerCase() === riggedWinner.toLowerCase());
-            let targetWinningIndex = -1;
-            
-            if (hasActiveRig) {
-                if (mode === 'normal') {
-                    // В обычном режиме: выбранный ник ВСЕГДА выигрывает
-                    targetWinningIndex = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
-                } else if (mode === 'elimination') {
-                    // В режиме выбывания: выбранный ник ЗАЩИЩЕН, выбираем другого для выбывания
-                    const protectedIdx = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
-                    // Исключаем защищенного ника из выбора
-                    const availableIndices = wheelParticipants
-                        .map((_, i) => i)
-                        .filter(i => i !== protectedIdx);
-                    if (availableIndices.length > 0) {
-                        targetWinningIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
-                    }
-                }
-            }
-            
             let totalSlices = wheelParticipants.length;
             let sliceWidth = (Math.PI * 2) / totalSlices;
             
-            // Вычисляем целевой угол
-            let extraRotation;
-            if (targetWinningIndex !== -1) {
-                // Угол сектора, на котором должно остановиться колесо
-                let targetSectorAngle = Math.PI * 1.5 - (targetWinningIndex * sliceWidth);
-                targetSectorAngle = targetSectorAngle % (Math.PI * 2);
-                if (targetSectorAngle < 0) targetSectorAngle += (Math.PI * 2);
-                // Добавляем несколько полных оборотов + небольшую случайность
-                extraRotation = targetSectorAngle + (Math.PI * 2 * (5 + Math.floor(Math.random() * 3)));
-            } else {
-                // Без рига — случайный угол
-                extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5);
-            }
-            
+            // Чистый случайный спин без подкрутки
+            let extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5);
             let targetAngle = startAngle + extraRotation;
             
             function animate(timestamp) { 
@@ -1390,11 +1356,6 @@
                     if (normalizedAngle < 0) normalizedAngle += (Math.PI * 2); 
                     let winningIndex = Math.floor((Math.PI * 1.5 - normalizedAngle) / sliceWidth) % totalSlices; 
                     if (winningIndex < 0) winningIndex += totalSlices;
-                    
-                    // Если была подкрутка, используем целевой индекс
-                    if (targetWinningIndex !== -1) {
-                        winningIndex = targetWinningIndex;
-                    }
                     
                     let finalWinner = wheelParticipants[winningIndex];
                     if (mode === 'normal') { 
