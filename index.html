@@ -1337,7 +1337,20 @@
             let targetWinningIndex = -1;
             
             if (hasActiveRig) {
-                targetWinningIndex = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
+                if (mode === 'normal') {
+                    // В обычном режиме: выбранный ник ВСЕГДА выигрывает
+                    targetWinningIndex = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
+                } else if (mode === 'elimination') {
+                    // В режиме выбывания: выбранный ник ЗАЩИЩЕН, выбираем другого для выбывания
+                    const protectedIdx = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
+                    // Исключаем защищенного ника из выбора
+                    const availableIndices = wheelParticipants
+                        .map((_, i) => i)
+                        .filter(i => i !== protectedIdx);
+                    if (availableIndices.length > 0) {
+                        targetWinningIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                    }
+                }
             }
             
             let totalSlices = wheelParticipants.length;
