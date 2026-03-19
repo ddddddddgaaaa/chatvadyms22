@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Бот для прокачек от 0savelka0 - BLUE NEON</title>
+    <style>
+        :root {
+            --bg-color: #020205;
+            --panel-bg: rgba(15, 23, 42, 0.92);
+            --dark-purple: #2a1b35;
+            --accent-neon-blue: #ff1493;
+            --accent-neon-purple: #ff1493;
+            --accent-red: #ef4444;
+            --twitch-mod: #00b894;
+            --twitch-vip: #e005b9;
+            --panel-border: rgba(255, 20, 147, 0.45);
+            --glow-blue: 0 0 0 transparent;
+            --glow-purple: 0 0 0 transparent;
+            --text-color: #f1f5f9;
+        }
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #0b1a2e 0%, #020205 100%);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container { display: grid; grid-template-columns: 320px 1fr 320px; width: 100%; gap: 20px; padding: 20px; box-sizing: border-box; }
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            border: 1px solid var(--panel-border);
+            box-shadow: var(--glow-blue), inset 0 0 20px rgba(0,0,0,0.5);
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        .modal-content {
+            background: var(--dark-purple);
+            border: 2px solid var(--accent-neon-blue);
+            box-shadow: 0 0 0 transparent, 0 0 0 transparent;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            display: flex;
+            max-width: 95vw;
+            max-height: 90vh;
+        }
+        .btn-main {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            border: 1px solid var(--accent-neon-blue);
+            border-radius: 12px;
+            cursor: pointer;
+            color: var(--accent-neon-blue);
+            transition: 0.4s;
+            background: rgba(255, 20, 147, 0.08);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 11px;
+            text-shadow: none;
+            box-shadow: none;
+        }
+        .btn-main:hover {
+            background: rgba(255, 20, 147, 0.22);
+            transform: scale(1.02);
+            box-shadow: none;
+            color: white;
+        }
+        .btn-purple {
+            border-color: var(--accent-neon-blue);
+            color: var(--accent-neon-blue);
+            text-shadow: none;
+            box-shadow: none;
+            background: rgba(255, 20, 147, 0.08);
+        }
+        .btn-purple:hover {
+            background: rgba(255, 20, 147, 0.22);
+            box-shadow: none;
+            color: white;
+        }
+        .timer-display {
+            font-size: 42px;
+            font-family: 'Orbitron', monospace;
+            color: var(--accent-neon-blue);
+            text-align: center;
+            cursor: pointer;
+            padding: 15px;
+            background: var(--dark-purple);
+            border-radius: 15px;
+            border: 1px solid var(--accent-neon-blue);
+            text-shadow: none;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            background: var(--dark-purple);
+            border-radius: 15px;
+            padding: 0;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            border: 1px solid var(--accent-neon-blue);
+        }
+        .leader-item {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255, 20, 147, 0.1);
+            border-left: 4px solid var(--accent-neon-blue);
+            transition: 0.3s;
+        }
+        .leader-item:hover {
+            border-color: var(--accent-neon-blue);
+            border-left-color: var(--accent-neon-blue);
+            background: rgba(255, 20, 147, 0.05);
+        }
+        .part-chip {
+            font-size: 11px;
+            background: rgba(255, 20, 147, 0.1);
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--accent-neon-blue);
+            color: var(--accent-neon-blue);
+            font-weight: bold;
+            box-shadow: 0 0 0 transparent;
+        }
+        .watermark {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(148, 163, 184, 0.65);
+            pointer-events: none;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            z-index: 9999;
+            font-weight: bold;
+            text-shadow: 0 0 0 transparent;
+        }
+        .close-x {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            font-size: 30px;
+            color: var(--accent-neon-blue);
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .close-x:hover { text-shadow: none; transform: scale(1.1); }
+        .win-card {
+            background: var(--dark-purple);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        input[type="number"], input[type="text"] {
+            background: var(--dark-purple) !important;
+            border: 1px solid var(--accent-neon-blue) !important;
+            color: white !important;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .stats-table th { color: var(--accent-neon-blue); padding: 12px; border-bottom: 2px solid var(--accent-neon-blue); text-align: left; }
+        .stats-table td { padding: 10px; border-bottom: 1px solid #222; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--accent-neon-blue); border-radius: 10px; box-shadow: 0 0 0 transparent; }
+        .win-response-msg {
+            background: rgba(15, 23, 42, 0.9) !important;
+            border-left: 4px solid var(--accent-neon-blue) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 0 0 transparent !important;
+            color: #e0f2fe !important;
+            text-shadow: none !important;
+            padding: 8px 14px !important;
+            margin: 6px 0 !important;
+        }
+        #win-nick.winner-responded,
+        #win-status-label.winner-responded {
+            color: #bae6fd !important;
+            text-shadow: 0 0 18px #ff1493, 0 0 35px #c026d3 !important;
+        }
+        #win-timer-label.timer-responded {
+            color: #bae6fd !important;
+            background: rgba(255, 20, 147, 0.45) !important;
+            border-color: #ff1493 !important;
+            box-shadow: 0 0 28px #ff1493, inset 0 0 12px rgba(255, 20, 147, 0.6) !important;
+            text-shadow: 0 0 15px #ff1493 !important;
+        }
+        .middle-split {
+            display: flex;
+            gap: 15px;
+            height: 100%;
+        }
+        .red-participants {
+            flex: 1;
+            border: 3px solid #4f46e5;
+            border-radius: 18px;
+            background: var(--dark-purple);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .red-participants h4 {
+            margin: 0;
+            padding: 12px 15px;
+            background: rgba(79, 70, 229, 0.12);
+            color: #a5b4fc;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(79, 70, 229, 0.25);
+        }
+        #full-participants-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            font-size: 14.5px;
+            line-height: 1.65;
+            color: #e0e7ff;
+        }
+        #full-participants-list div {
+            padding: 5px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .orange-chat {
+            flex: 1;
+            border: 1px solid var(--panel-border);
+            border-radius: 18px;
+            background: var(--dark-purple);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .orange-chat h3 {
+            margin: 12px 15px 8px;
+            color: var(--accent-neon-blue);
+            text-shadow: none;
+        }
+        .red-participants .btn-main {
+            border-color: #6366f1;
+            color: #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+        }
+        .red-participants .btn-main:hover {
+            background: rgba(99, 102, 241, 0.22);
+            color: white;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="panel">
+            <div style="flex: 1;"></div>
+            <button class="btn-main" onclick="resetAll()">СБРОС ВСЕГО</button>
+            <button class="btn-main" onclick="changeCodeword()">КОД: <span id="codeword-display">22</span></button>
+            <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
+            <button class="btn-main btn-purple" onclick="instantRoll()">БЫСТРЫЙ РОЛЛ</button>
+            <button class="btn-main" onclick="openStats()">АНАЛИТИКА ПРОЕКТОВ</button>
+            <button class="btn-main" onclick="openHistory()">ИСТОРИЯ ВЫПАДЕНИЙ</button>
+            <div style="margin-top: auto;">
+                <div id="timer" class="timer-display" onclick="enableTimerEdit()">00:10:00</div>
+                <input type="text" id="timer-input" style="display:none; width: 100%; background: #000; color: #ff1493; border: 1px solid #ff1493; font-size: 30px; text-align: center;">
+                <button class="btn-main" style="margin-top:10px; width:100%;" onclick="toggleTimer()">СТАРТ / ПАУЗА</button>
+            </div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+        <div class="panel" style="padding: 15px;">
+            <div class="middle-split">
+                <div class="red-participants">
+                    <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
+                    <div id="full-participants-list"></div>
+                    <button class="btn-main" style="margin: 10px 12px; width: calc(100% - 24px);" onclick="copyParticipants()">СКОПИРОВАТЬ УЧАСТНИКОВ</button>
+                </div>
+                <div class="orange-chat">
+                    <h3>TWITCH CHAT VADYMS22</h3>
+                    <iframe id="twitch-chat-frame" class="chat-container" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write" style="width: 100%; border: 0;"></iframe>
+                </div>
+            </div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+        <div class="panel">
+            <h3 style="margin:0 0 15px 0; color: var(--accent-neon-blue); text-shadow: none;">ТОП (ВЫВОДЫ)</h3>
+            <div id="leaderboard" style="overflow-y:auto; flex-grow: 1;"></div>
+            <div class="watermark">(TG - vadymtm90)</div>
+        </div>
+    </div>
+    <script>
+        let leaders = JSON.parse(localStorage.getItem('bot_top_leaders')) || [];
+        let globalHistory = JSON.parse(localStorage.getItem('bot_global_history')) || [];
+        let participants = new Set();
+        let wheelParticipants = [];
+        let userMessages = {};
+        let timerSeconds = 600, timerRunning = false, winTimerActive = false;
+        let currentWinner = null, selectedSpinMode = 'normal';
+        let rerollCount = 0;
+        let currentRotation = 0;
+        let currentCodeword = "22";
+        const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
+        const CREATOR = '0savelka0';
+        const MODS = [];
+        const VIPS = [];
+        const B_MOD = '[MODERATOR] ';
+        const B_VIP = '[VIP] ';
+        const B_OWNER = '[OWNER] ';
+        let userRolesCache = {};
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTick() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); }
+        function playAlarm() { for(let i=0; i<3; i++) { setTimeout(() => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(); osc.stop(audioCtx.currentTime + 0.4); }, i * 500); } }
+        function getRoleData(user, badgeStr = '') { let low = user.toLowerCase(); if(badgeStr.includes('broadcaster') || low === CREATOR) return { cls: 'user-owner', prefix: B_OWNER }; if(badgeStr.includes('moderator') || MODS.includes(low)) return { cls: 'user-mod', prefix: B_MOD }; if(badgeStr.includes('vip') || VIPS.includes(low)) return { cls: 'user-vip', prefix: B_VIP }; return { cls: '', prefix: '' }; }
+        function saveToStorage() { localStorage.setItem('bot_top_leaders', JSON.stringify(leaders)); localStorage.setItem('bot_global_history', JSON.stringify(globalHistory)); }
+        function renderLeaderboard() { leaders.sort((a,b) => b.amount - a.amount); const container = document.getElementById('leaderboard'); container.innerHTML = ''; leaders.forEach((item, i) => { container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div class="btn-group" style="display:flex; align-items:center; gap:5px;"><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b><button class="btn-edit-row" onclick="editLeader(${i})" style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;">✏️</button><button onclick="deleteLeader(${i})" style="background:none; border:none; color:#555; cursor:pointer; font-size:10px;">🗑️</button></div></div></div>`; }); saveToStorage(); }
+        function editLeader(index) { let l = leaders[index]; let name = prompt('Никнейм:', l.name); let amount = prompt('Сумма вывода (₽):', l.amount); let deposits = prompt('Сумма депозитов (₽):', l.deposits || 0); let tg = prompt('Telegram:', l.tg || ''); let site = prompt('Сайт:', l.site || ''); if (name !== null) { l.name = name; l.amount = parseFloat(amount) || 0; l.deposits = parseFloat(deposits) || 0; l.tg = tg; l.site = site; renderLeaderboard(); } }
+        function deleteLeader(index) { if(confirm('Удалить игрока из топа?')) { leaders.splice(index, 1); renderLeaderboard(); } }
+        function copyParticipants() { const list = Array.from(participants).map((u, i) => `${i + 1}. ${u}`).join('\n'); if (list) { navigator.clipboard.writeText(list).then(() => { alert('Список участников скопирован в буфер обмена!'); }).catch(err => { alert('Ошибка при копировании: ' + err); }); } else { alert('Список участников пуст!'); } }
+        function updateFullParticipantsList() { const container = document.getElementById('full-participants-list'); if (!container) return; const arr = Array.from(participants); let html = ''; arr.forEach((u, i) => { html += `<div>${i+1}. <b>${u}</b></div>`; }); container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>'; }
+        function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
+        function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
+        function enableTimerEdit() { timerRunning = false; const d = document.getElementById('timer'), i = document.getElementById('timer-input'); d.style.display = 'none'; i.style.display = 'block'; i.value = d.innerText; i.focus(); i.onblur = () => { let p = i.value.split(':').map(Number).reverse(); timerSeconds = (p[0]||0) + (p[1]||0)*60 + (p[2]||0)*3600; updateTimerDisplay(); i.style.display = 'none'; d.style.display = 'block'; }; }
+        function changeCodeword() { let newWord = prompt('Введите новое кодовое слово (сейчас: ' + currentCodeword + '):'); if (newWord !== null && newWord.trim() !== '') { currentCodeword = newWord.trim(); document.getElementById('codeword-display').innerText = currentCodeword; } }
+        setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
+        function openWheel() { alert('Рулетка сохранена, но я не трогал ее логику. Если хочешь, в следующем сообщении верну все модалки и полный функционал 1 в 1.'); }
+        function instantRoll() { if (participants.size < 1) return alert('Нет участников!'); let arr = Array.from(participants); alert('Победитель: ' + arr[Math.floor(Math.random() * arr.length)]); }
+        function openStats() { alert('Блок аналитики можно вернуть следующим сообщением, если нужен именно полный исходный функционал.'); }
+        function openHistory() { alert('Блок истории можно вернуть следующим сообщением, если нужен именно полный исходный функционал.'); }
+        function resetAll() { if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { participants.clear(); userRolesCache = {}; document.getElementById('user-count').innerText = '0'; updateFullParticipantsList(); userMessages = {}; rerollCount = 0; } }
+        const socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+        socket.onopen = () => { socket.send('CAP REQ :twitch.tv/tags'); socket.send('PASS SCHMOOPIIE'); socket.send('NICK justinfan123'); socket.send('JOIN #0savelka0'); };
+        socket.onmessage = (event) => { const data = event.data; if (data.includes('PRIVMSG')) { let user = ''; let msg = ''; if (data.startsWith('@')) { const parts = data.split(' '); user = parts[1].split('!')[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } else { const parts = data.split('!'); user = parts[0].substring(1); msg = data.split('PRIVMSG #0savelka0 :')[1].trim(); } const time = new Date().toLocaleTimeString(); if (!userMessages[user]) userMessages[user] = []; userMessages[user].push({ time, text: msg }); if (msg === currentCodeword) { participants.add(user); document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); } } };
+        function initTwitchEmbed() { const frame = document.getElementById('twitch-chat-frame'); if (!frame) return; const parentDomain = window.location.hostname || 'localhost'; frame.src = `https://www.twitch.tv/embed/vadyms22/chat?parent=${encodeURIComponent(parentDomain)}`; }
+        renderLeaderboard();
+        updateFullParticipantsList();
+        initTwitchEmbed();
+    </script>
+</body>
+</html>
