@@ -143,6 +143,77 @@
             background: var(--dark-purple);
             border-radius: 14px;
         }
+        .local-chat-shell {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            margin: 0 12px 12px;
+            background: rgba(255, 255, 255, 0.97);
+            border: 2px solid rgba(255, 20, 147, 0.85);
+            border-radius: 22px;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .local-chat-header {
+            padding: 12px 18px;
+            text-align: center;
+            font-weight: 700;
+            color: #111827;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.12);
+            background: rgba(255, 255, 255, 0.96);
+        }
+        .local-chat-feed {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px 18px;
+            background: #ffffff;
+        }
+        .local-chat-empty {
+            color: #6b7280;
+            font-size: 14px;
+            padding: 12px 4px;
+        }
+        .local-chat-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            color: #111827;
+            font-size: 14px;
+            line-height: 1.45;
+            padding: 4px 0;
+            word-break: break-word;
+        }
+        .local-chat-time {
+            flex: 0 0 auto;
+            min-width: 42px;
+            color: #4b5563;
+        }
+        .local-chat-participant {
+            flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: rgba(168, 85, 247, 0.18);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            color: #6d28d9;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
+        .local-chat-user {
+            flex: 0 0 auto;
+            font-weight: 800;
+            color: #ef4444;
+        }
+        .local-chat-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            color: #1f2937;
+        }
         .leader-item {
             display: flex;
             flex-direction: column;
@@ -506,8 +577,11 @@
                 </div>
                 <div class="orange-chat">
                     <h3>TWITCH CHAT VADYMS22</h3>
-                    <div class="chat-container">
-                        <iframe id="twitch-chat-frame" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write"></iframe>
+                    <div class="local-chat-shell">
+                        <div class="local-chat-header">Чат трансляции</div>
+                        <div id="local-chat-feed" class="local-chat-feed">
+                            <div class="local-chat-empty">Сообщения появятся после подключения к каналу.</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -575,6 +649,7 @@
         let currentRotation = 0;
         let currentCodeword = "22";
         let selectedImportFormat = 'csv';
+        let renderedChatMessages = [];
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
         let currentChannelName = localStorage.getItem('bot_channel_name') || '';
         let currentProfileName = localStorage.getItem('bot_profile_name') || '';
@@ -700,12 +775,46 @@
         }
         function updateChannelUi() {
             const title = document.querySelector('.orange-chat h3');
+            const localTitle = document.querySelector('.local-chat-header');
             if (title) {
                 title.textContent = currentChannelName ? `TWITCH CHAT ${currentChannelName.toUpperCase()}` : 'TWITCH CHAT';
+            }
+            if (localTitle) {
+                localTitle.textContent = currentChannelName ? `Чат трансляции ${currentChannelName}` : 'Чат трансляции';
             }
             document.title = currentChannelName
                 ? `Бот для прокачек от 0savelka0 - ${currentChannelName}`
                 : 'Бот для прокачек от 0savelka0 - BLUE NEON';
+        }
+        function escapeHtml(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        function renderLocalChat() {
+            const feed = document.getElementById('local-chat-feed');
+            if (!feed) return;
+            if (!renderedChatMessages.length) {
+                feed.innerHTML = '<div class="local-chat-empty">Сообщения появятся после подключения к каналу.</div>';
+                return;
+            }
+            feed.innerHTML = renderedChatMessages.map((item) => {
+                const participantBadge = isParticipantActive(item.user)
+                    ? '<span class="local-chat-participant">УЧАСТВУЕТ</span>'
+                    : '';
+                return `<div class="local-chat-row"><span class="local-chat-time">${escapeHtml(item.time)}</span>${participantBadge}<span class="local-chat-user">${escapeHtml(item.user)}:</span><span class="local-chat-text">${escapeHtml(item.text)}</span></div>`;
+            }).join('');
+            feed.scrollTop = feed.scrollHeight;
+        }
+        function pushChatMessage(user, text, time) {
+            renderedChatMessages.push({ user, text, time });
+            if (renderedChatMessages.length > 250) {
+                renderedChatMessages = renderedChatMessages.slice(-250);
+            }
+            renderLocalChat();
         }
         function openAuthModal() {
             document.getElementById('auth-channel-input').value = currentChannelName;
@@ -762,6 +871,7 @@
 
                 if (!userMessages[user]) userMessages[user] = [];
                 userMessages[user].push({ time, text: msg });
+                pushChatMessage(user, msg, time);
 
                 if (normalizedMessage === normalizedCodeword) {
                     participants.add(user);
@@ -795,16 +905,6 @@
                 }
             };
         }
-        function initTwitchEmbed() {
-            const frame = document.getElementById('twitch-chat-frame');
-            if (!frame) return;
-            if (!currentChannelName) {
-                frame.removeAttribute('src');
-                return;
-            }
-            const parentDomain = window.location.hostname || 'localhost';
-            frame.src = `https://www.twitch.tv/embed/${currentChannelName}/chat?parent=${encodeURIComponent(parentDomain)}`;
-        }
         function applyAuthSettings() {
             const channelValue = sanitizeChannelName(document.getElementById('auth-channel-input').value);
             const nameValue = String(document.getElementById('auth-name-input').value || '').trim();
@@ -820,7 +920,6 @@
             currentProfileName = nameValue;
             saveToStorage();
             updateChannelUi();
-            initTwitchEmbed();
             connectTwitchSocket();
             closeAuthModal();
         }
@@ -845,6 +944,7 @@
                 html += `<div class="participant-row${inactiveClass}"><span class="participant-name">${badge}<span>${i+1}. <b>${u}</b></span></span><label><input type="checkbox" ${checked} onchange="toggleParticipantActive('${u.replace(/'/g, "\\'")}', this.checked)"></label></div>`;
             });
             container.innerHTML = html || '<div style="color:#666; text-align:center; padding:30px 0;">Нет участников</div>';
+            renderLocalChat();
         }
         function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
         function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
@@ -959,7 +1059,6 @@
         setImportFormat('csv');
         updateChannelUi();
         if (currentChannelName) {
-            initTwitchEmbed();
             connectTwitchSocket();
         }
         openAuthModal();
