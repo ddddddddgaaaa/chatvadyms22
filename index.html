@@ -390,6 +390,7 @@
             }
             if (!data.includes('PRIVMSG')) return;
 
+            let badgeStr = '';
             let user = '';
             let msg = '';
             const messageMarker = `PRIVMSG #${CHANNEL_NAME} :`;
@@ -397,6 +398,10 @@
 
             if (data.startsWith('@')) {
                 const parts = data.split(' ');
+                const rawTags = parts[0];
+                if (rawTags.includes('badges=')) {
+                    badgeStr = rawTags.split('badges=')[1].split(';')[0];
+                }
                 user = parts[1].split('!')[0].substring(1);
                 msg = data.split(messageMarker)[1].trim();
             } else {
@@ -405,6 +410,7 @@
                 msg = data.split(messageMarker)[1].trim();
             }
 
+            userRolesCache[user.toLowerCase()] = badgeStr;
             const normalizedMessage = msg.trim().toLowerCase();
             const normalizedCodeword = currentCodeword.trim().toLowerCase();
             const time = new Date().toLocaleTimeString();
@@ -416,6 +422,31 @@
                 participants.add(user);
                 document.getElementById('user-count').innerText = participants.size;
                 updateFullParticipantsList();
+            }
+
+            if (currentWinner && user.toLowerCase() === currentWinner.toLowerCase()) {
+                if (winTimerActive) {
+                    winTimerActive = false;
+                    const timerLabel = document.getElementById('win-timer-label');
+                    const statusLabel = document.getElementById('win-status-label');
+                    const nick = document.getElementById('win-nick');
+                    timerLabel.classList.add('timer-responded');
+                    statusLabel.innerText = 'WINNER RESPONDED!';
+                    statusLabel.classList.add('winner-responded');
+                    nick.classList.add('winner-responded');
+                }
+
+                const winnerScreen = document.getElementById('winner-screen');
+                if (winnerScreen && winnerScreen.style.display === 'flex') {
+                    const history = document.getElementById('win-chat-history');
+                    if (history) {
+                        const newMsg = document.createElement('div');
+                        newMsg.className = 'win-response-msg';
+                        newMsg.innerHTML = `<small style="color:#555;">${time}</small> ${msg}`;
+                        history.insertBefore(newMsg, history.firstChild);
+                        history.scrollTop = 0;
+                    }
+                }
             }
         };
         function initTwitchEmbed() { const frame = document.getElementById('twitch-chat-frame'); if (!frame) return; const parentDomain = window.location.hostname || 'localhost'; frame.src = `https://www.twitch.tv/embed/${CHANNEL_NAME}/chat?parent=${encodeURIComponent(parentDomain)}`; }
