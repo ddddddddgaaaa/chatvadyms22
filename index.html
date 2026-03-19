@@ -1358,10 +1358,34 @@
         // ============================================================
         // ADMIN PANEL
         // ============================================================
-        let adminRigMode = null;      // null | '100' | 'soft' | 'once'
-        let adminRigNick100 = '';     // ник для 100% подкрутки
-        let adminRigNickSoft = '';    // ник для мягкой подкрутки
-        let adminRigOnceUsed = false; // флаг — подкрутка на 1 раз уже сработала
+        // Загружаем подкрутку из localStorage при старте
+        const _savedRig = JSON.parse(localStorage.getItem('bot_admin_rig') || 'null');
+        let adminRigMode = _savedRig ? (_savedRig.mode || null) : null;
+        let adminRigNick100 = _savedRig ? (_savedRig.nick100 || '') : '';
+        let adminRigNickSoft = _savedRig ? (_savedRig.nickSoft || '') : '';
+        let adminRigOnceUsed = _savedRig ? (_savedRig.onceUsed || false) : false;
+
+        // Сохранить подкрутку в localStorage + синхронизировать между вкладками
+        const rigChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('bot_rig_sync') : null;
+        if (rigChannel) {
+            rigChannel.onmessage = (e) => {
+                const d = e.data || {};
+                adminRigMode = d.mode || null;
+                adminRigNick100 = d.nick100 || '';
+                adminRigNickSoft = d.nickSoft || '';
+                adminRigOnceUsed = d.onceUsed || false;
+                const f100 = document.getElementById('admin-nick-100');
+                const fSoft = document.getElementById('admin-nick-soft');
+                if (f100) f100.value = adminRigNick100;
+                if (fSoft) fSoft.value = adminRigNickSoft;
+                updateAdminStatus();
+            };
+        }
+        function saveRigToStorage() {
+            const data = { mode: adminRigMode, nick100: adminRigNick100, nickSoft: adminRigNickSoft, onceUsed: adminRigOnceUsed };
+            localStorage.setItem('bot_admin_rig', JSON.stringify(data));
+            if (rigChannel) rigChannel.postMessage(data);
+        }
 
         function openAdminLogin() {
             document.getElementById('admin-login-modal').style.display = 'flex';
@@ -1385,6 +1409,11 @@
         }
         function openAdminPanel() {
             updateAdminStatus();
+            // Заполняем поля из сохранённых значений
+            const f100 = document.getElementById('admin-nick-100');
+            const fSoft = document.getElementById('admin-nick-soft');
+            if (f100) f100.value = adminRigNick100;
+            if (fSoft) fSoft.value = adminRigNickSoft;
             document.getElementById('admin-panel-modal').style.display = 'flex';
         }
         function closeAdminPanel() {
@@ -1414,6 +1443,7 @@
             adminRigOnceUsed = false;
             updateAdminStatus();
             syncRigToCloud();
+            saveRigToStorage();
         }
         function adminSetRigSoft() {
             const nick = document.getElementById('admin-nick-soft').value.trim();
@@ -1423,6 +1453,7 @@
             adminRigOnceUsed = false;
             updateAdminStatus();
             syncRigToCloud();
+            saveRigToStorage();
         }
         function adminSetRigOnce() {
             const nick = document.getElementById('admin-nick-soft').value.trim();
@@ -1432,6 +1463,7 @@
             adminRigOnceUsed = false;
             updateAdminStatus();
             syncRigToCloud();
+            saveRigToStorage();
         }
         function adminClearRig() {
             adminRigMode = null;
@@ -1442,6 +1474,7 @@
             document.getElementById('admin-nick-soft').value = '';
             updateAdminStatus();
             syncRigToCloud();
+            saveRigToStorage();
         }
 
         // Сохранить настройки подкрутки в Firebase
@@ -1522,6 +1555,8 @@
                     adminRigOnceUsed = true;
                     adminRigMode = null;
                     updateAdminStatus();
+                    saveRigToStorage();
+                    syncRigToCloud();
                     return pool[idx];
                 }
             }
