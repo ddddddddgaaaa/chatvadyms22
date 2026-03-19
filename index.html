@@ -1326,41 +1326,80 @@
 
         function executeSpin() { if (wheelParticipants.length === 0) return; document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
         function drawWheel(angle) { const canvas = document.getElementById('wheelCanvas'), ctx = canvas.getContext('2d'); const p = wheelParticipants, slice = (Math.PI * 2) / (p.length || 1); ctx.clearRect(0,0,500,500); p.forEach((name, i) => { const sectorColor = wheelColors[i % wheelColors.length]; ctx.beginPath(); ctx.fillStyle = sectorColor; ctx.moveTo(250,250); ctx.arc(250,250,240, angle + i*slice, angle + (i+1)*slice); ctx.fill(); ctx.save(); ctx.translate(250,250); ctx.rotate(angle + i*slice + slice/2); ctx.fillStyle = '#ffffff'; ctx.font = 'bold 15px Inter'; ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(0,0,0,0.95)'; ctx.fillText(name.substring(0, 18), 95, 6); ctx.restore(); }); ctx.beginPath(); ctx.arc(250,250,240, 0, Math.PI*2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 5; ctx.stroke(); }
-        function startSpin(mode) { let duration = parseInt(document.getElementById('dur-slider').value) * 1000; let startTimestamp = null; let extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5); let startAngle = currentRotation; let targetAngle = startAngle + extraRotation; function animate(timestamp) { if (!startTimestamp) startTimestamp = timestamp; let progress = timestamp - startTimestamp; let t = progress / duration; let ease = 1 - Math.pow(1 - t, 3); currentRotation = startAngle + (targetAngle - startAngle) * ease; if (progress < duration) { drawWheel(currentRotation); requestAnimationFrame(animate); } else { currentRotation = targetAngle; drawWheel(currentRotation); let totalSlices = wheelParticipants.length; let sliceWidth = (Math.PI * 2) / totalSlices; let normalizedAngle = (currentRotation % (Math.PI * 2)); if (normalizedAngle < 0) normalizedAngle += (Math.PI * 2); let winningIndex = Math.floor((Math.PI * 1.5 - normalizedAngle) / sliceWidth) % totalSlices; if (winningIndex < 0) winningIndex += totalSlices;
-                // Проверяем наличие активной подкрутки (риг)
-                let riggedWinner = pickRiggedWinner(wheelParticipants);
-                let hasActiveRig = riggedWinner !== null && wheelParticipants.some(n => n.toLowerCase() === riggedWinner.toLowerCase());
-                
-                // Если есть активный риг — корректируем индекс на выбранного ника
-                if (hasActiveRig) {
-                    const rigIdx = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
-                    if (rigIdx !== -1) { winningIndex = rigIdx; }
-                }
-                
-                let finalWinner = wheelParticipants[winningIndex];
-                if (mode === 'normal') { 
-                    showWinnerRef(finalWinner); 
-                    document.getElementById('roll-button').disabled = false; 
+        function startSpin(mode) { 
+            let duration = parseInt(document.getElementById('dur-slider').value) * 1000; 
+            let startTimestamp = null; 
+            let startAngle = currentRotation; 
+            
+            // Перед анимацией определяем, есть ли активная подкрутка и целевой индекс
+            let riggedWinner = pickRiggedWinner(wheelParticipants);
+            let hasActiveRig = riggedWinner !== null && wheelParticipants.some(n => n.toLowerCase() === riggedWinner.toLowerCase());
+            let targetWinningIndex = -1;
+            
+            if (hasActiveRig) {
+                targetWinningIndex = wheelParticipants.findIndex(n => n.toLowerCase() === riggedWinner.toLowerCase());
+            }
+            
+            let totalSlices = wheelParticipants.length;
+            let sliceWidth = (Math.PI * 2) / totalSlices;
+            
+            // Вычисляем целевой угол
+            let extraRotation;
+            if (hasActiveRig && targetWinningIndex !== -1) {
+                // Угол сектора, на котором должно остановиться колесо
+                let targetSectorAngle = Math.PI * 1.5 - (targetWinningIndex * sliceWidth);
+                targetSectorAngle = targetSectorAngle % (Math.PI * 2);
+                // Добавляем несколько полных оборотов + небольшую случайность
+                extraRotation = targetSectorAngle + (Math.PI * 2 * (5 + Math.floor(Math.random() * 3)));
+            } else {
+                // Без рига — случайный угол
+                extraRotation = Math.random() * (Math.PI * 2) + (Math.PI * 2 * 5);
+            }
+            
+            let targetAngle = startAngle + extraRotation;
+            
+            function animate(timestamp) { 
+                if (!startTimestamp) startTimestamp = timestamp; 
+                let progress = timestamp - startTimestamp; 
+                let t = progress / duration; 
+                let ease = 1 - Math.pow(1 - t, 3); 
+                currentRotation = startAngle + (targetAngle - startAngle) * ease; 
+                if (progress < duration) { 
+                    drawWheel(currentRotation); 
+                    requestAnimationFrame(animate); 
                 } else { 
-                    let eliminatedUser = finalWinner; 
-                    document.getElementById('elim-log').innerText = 'ВЫБЫЛ: ' + eliminatedUser; 
-                    playTick(); 
-                    wheelParticipants.splice(winningIndex, 1); 
-                    if (wheelParticipants.length === 1) { 
-                        setTimeout(() => { 
-                            showWinnerRef(wheelParticipants[0]); 
-                            document.getElementById('roll-button').disabled = false; 
-                        }, 1200); 
+                    currentRotation = targetAngle; 
+                    drawWheel(currentRotation); 
+                    
+                    let normalizedAngle = (currentRotation % (Math.PI * 2)); 
+                    if (normalizedAngle < 0) normalizedAngle += (Math.PI * 2); 
+                    let winningIndex = Math.floor((Math.PI * 1.5 - normalizedAngle) / sliceWidth) % totalSlices; 
+                    if (winningIndex < 0) winningIndex += totalSlices;
+                    
+                    let finalWinner = wheelParticipants[winningIndex];
+                    if (mode === 'normal') { 
+                        showWinnerRef(finalWinner); 
+                        document.getElementById('roll-button').disabled = false; 
                     } else { 
-                        setTimeout(() => { 
-                            drawWheel(currentRotation); 
-                            startSpin('elimination'); 
-                        }, 800); 
+                        let eliminatedUser = finalWinner; 
+                        document.getElementById('elim-log').innerText = 'ВЫБЫЛ: ' + eliminatedUser; 
+                        playTick(); 
+                        wheelParticipants.splice(winningIndex, 1); 
+                        if (wheelParticipants.length === 1) { 
+                            setTimeout(() => { 
+                                showWinnerRef(wheelParticipants[0]); 
+                                document.getElementById('roll-button').disabled = false; 
+                            }, 1200); 
+                        } else { 
+                            setTimeout(() => { 
+                                drawWheel(currentRotation); 
+                                startSpin('elimination'); 
+                            }, 800); 
+                        } 
                     } 
                 } 
             } 
-        } 
-        requestAnimationFrame(animate); 
+            requestAnimationFrame(animate); 
         }
         function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); let win = pickRiggedWinner(arr); showWinnerRef(win); }
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); document.getElementById('winner-screen').style.display = 'none'; winTimerActive = false; clearInterval(window.winInt); }
