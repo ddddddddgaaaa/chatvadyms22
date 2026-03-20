@@ -1681,16 +1681,44 @@
                     cy + r * Math.sin(angle + i * slice)
                 );
                 ctx.stroke();
-                // Текст
+                // Текст — адаптивный размер по длине имени и доступной ширине сектора
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(angle + i * slice + slice / 2);
+                // позиция текста вдоль радиуса
+                const textRadius = r * 0.35;
+                // доступная ширина вдоль дуги (даём небольшой запас 0.9)
+                const maxArcWidth = slice * textRadius * 0.9;
+                const maxFont = Math.min(18, Math.max(12, Math.floor(200 / p.length)));
+                const minFont = 9;
+                let displayName = String(name || '');
+                let chosenFont = maxFont;
+                // подбираем размер шрифта от большего к меньшему пока текст не помещается
+                for (let fs = maxFont; fs >= minFont; fs--) {
+                    ctx.font = `bold ${fs}px Inter`;
+                    const w = ctx.measureText(displayName).width;
+                    if (w <= maxArcWidth) { chosenFont = fs; break; }
+                }
+                // если даже минимальный шрифт не вмещается — подрезаем имя и добавляем троеточие
+                ctx.font = `bold ${minFont}px Inter`;
+                if (ctx.measureText(displayName).width > maxArcWidth) {
+                    let txt = displayName;
+                    while (txt.length > 1) {
+                        txt = txt.slice(0, -1);
+                        const test = txt + '…';
+                        if (ctx.measureText(test).width <= maxArcWidth) { displayName = test; break; }
+                    }
+                    // на крайний случай — обрежем к первичным 12 символам
+                    if (displayName.length > 12 && ctx.measureText(displayName).width > maxArcWidth) {
+                        displayName = displayName.substring(0, 12) + '…';
+                    }
+                }
                 ctx.fillStyle = '#ffffff';
-                ctx.font = `bold ${Math.max(10, Math.min(15, 200 / p.length))}px Inter`;
+                ctx.font = `bold ${chosenFont}px Inter`;
                 ctx.shadowBlur = 6;
                 ctx.shadowColor = 'rgba(0,0,0,0.9)';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(name.substring(0, 18), r * 0.35, 0);
+                ctx.fillText(displayName, textRadius, 0);
                 ctx.restore();
             });
             // Обводка
