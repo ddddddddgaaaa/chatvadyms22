@@ -319,6 +319,7 @@
             border: 1px solid var(--accent-soft-border);
             border-left: 4px solid var(--accent-neon-blue);
             transition: 0.3s;
+            font-size: 14px; /* уменьшен на ~2px для компактности */
         }
         .leader-item:hover {
             border-color: var(--accent-neon-blue);
@@ -1160,7 +1161,6 @@
                     globalHistory: globalHistory || [],
                     participantProfiles: participantProfiles || {},
                     participantStates: participantStates || {},
-                    participants: Array.from(participants || []),
                     channelName: currentChannelName || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 };
@@ -1195,9 +1195,7 @@
                 if (Array.isArray(data.globalHistory) && data.globalHistory.length) globalHistory = data.globalHistory;
                 if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
                 if (data.participantStates) participantStates = Object.assign({}, participantStates, data.participantStates);
-                if (Array.isArray(data.participants)) {
-                    participants = new Set(data.participants);
-                }
+                // NOTE: participants list is intentionally not loaded from cloud
                 saveToStorage();
                 renderLeaderboard();
                 updateFullParticipantsList();
@@ -1232,10 +1230,7 @@
                     }
                     if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
                     if (data.participantStates) participantStates = Object.assign({}, participantStates, data.participantStates);
-                    if (Array.isArray(data.participants)) {
-                        participants = new Set(data.participants);
-                        updateFullParticipantsList();
-                    }
+                    // participants list intentionally ignored from cloud to keep ephemeral local joins only
                 });
                 // after subscribing, also load accounts
                 try { loadAccountsFromCloud(); } catch(e){}
