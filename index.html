@@ -1237,6 +1237,15 @@
                         updateFullParticipantsList();
                     }
                 });
+                // after subscribing, also load accounts
+                try { loadAccountsFromCloud(); } catch(e){}
+                // after subscribing, also load accounts and ensure codeword for specific channels
+                try { loadAccountsFromCloud(); } catch(e){}
+                // If current channel has a special codeword, apply it
+                if (sanitizeChannelName(currentChannelName) === '0savelka0') {
+                    currentCodeword = '+';
+                    const cd = document.getElementById('codeword-display'); if (cd) cd.innerText = currentCodeword;
+                }
             } catch (e) {
                 console.error('subscribeAppStateFromCloud error:', e);
             }
@@ -1373,6 +1382,11 @@
                 return;
             }
             currentChannelName = channelValue;
+            // apply special per-channel defaults (codeword)
+            if (sanitizeChannelName(channelValue) === '0savelka0') {
+                currentCodeword = '+';
+                const cd = document.getElementById('codeword-display'); if (cd) cd.innerText = currentCodeword;
+            }
             saveToStorage();
             updateChannelUi();
             initTwitchEmbed();
@@ -1589,7 +1603,20 @@
                 syncRerollToCloud(currentWinner, rerollCount);
                 saveToStorage();
             }
-            closeModals();
+            // Re-roll immediately: pick new winner and show it without returning to main screen
+            const arr = getActiveParticipants();
+            if (arr.length === 0) {
+                closeModals();
+                return;
+            }
+            // pick a new winner (respecting rigging)
+            const newWinner = pickRiggedWinner(arr);
+            if (newWinner) {
+                // mark previous winner as rerolled already saved above, now show new winner
+                showWinnerRef(newWinner);
+            } else {
+                closeModals();
+            }
         }
         async function syncRerollToCloud(name, count) {
             if (!cloudReady || !cloudDb) return;
@@ -1685,8 +1712,13 @@
             if (n === 0) return;
             const sliceAngle = (Math.PI * 2) / n;
 
-            // Выбираем победителя ДО анимации
-            let winner = pickRiggedWinner(wheelParticipants);
+            // Выбираем победителя/выбывающего ДО анимации
+            let winner = null;
+            if (mode === 'elimination') {
+                winner = pickRiggedElimination(wheelParticipants);
+            } else {
+                winner = pickRiggedWinner(wheelParticipants);
+            }
             let winnerIdx = wheelParticipants.findIndex(w => w === winner);
             if (winnerIdx === -1) winnerIdx = Math.floor(Math.random() * n);
             winner = wheelParticipants[winnerIdx];
@@ -1959,9 +1991,10 @@
             if (!pool || pool.length === 0) return null;
             const lowerPool = pool.map(n => n.toLowerCase());
 
+            // Normal-mode rigging: return favored nick
             if (adminRigMode === '100') {
                 const idx = lowerPool.indexOf(adminRigNick100.toLowerCase());
-                if (idx !== -1) return pool[idx];
+                if (idx !== -1 && pool.length > 0) return pool[idx];
             }
 
             if (adminRigMode === 'once' && !adminRigOnceUsed) {
@@ -1994,7 +2027,95 @@
             return pool[Math.floor(Math.random() * pool.length)];
         }
 
-        document.getElementById('admin-user-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('admin-pass-input').focus(); });
+        // Pick elimination target (avoid rigged nick when possible)
+        function pickRiggedElimination(pool) {
+            if (!pool || pool.length === 0) return null;
+            if (pool.length === 1) return pool[0];
+            const lowerPool = pool.map(n => n.toLowerCase());
+            // 100% rig: never eliminate target
+            if (adminRigMode === '100') {
+                const idx = lowerPool.indexOf(adminRigNick100.toLowerCase());
+                if (idx !== -1) {
+                    // choose random among others
+                    const others = pool.filter((p, i) => i !== idx);
+                    return others[Math.floor(Math.random() * others.length)];
+                }
+            }
+            // once: try to protect soft nick until final
+            if (adminRigMode === 'once' && !adminRigOnceUsed) {
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const others = pool.filter((p, i) => i !== idx);
+                    if (others.length > 0) return others[Math.floor(Math.random() * others.length)];
+                }
+            }
+            // soft: reduce chance to be eliminated
+            if (adminRigMode === 'soft') {
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const weights = pool.map((_, i) => i === idx ? 0.2 : 1);
+                    const total = weights.reduce((a,b) => a+b, 0);
+                    let r = Math.random() * total;
+                    for (let i=0;i<weights.length;i++){
+                        r -= weights[i];
+                        if (r <= 0) return pool[i];
+                    }
+                }
+            }
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+            // Добавить запись в историю вручную из админки
+            function addManualHistory() {
+                const nameEl = document.getElementById('manual-name');
+                const tgEl = document.getElementById('manual-tg');
+                const amtEl = document.getElementById('manual-amount');
+                const depEl = document.getElementById('manual-deposit');
+                const siteEl = document.getElementById('manual-site');
+                const dateEl = document.getElementById('manual-date');
+                if (!nameEl) return alert('Элемент формы не найден');
+                const name = nameEl.value.trim();
+                if (!name) return alert('Введите никнейм');
+                const tg = (tgEl && tgEl.value.trim()) || '';
+                const amount = parseFloat((amtEl && amtEl.value) || 0) || 0;
+                const deposit = parseFloat((depEl && depEl.value) || 0) || 0;
+                const site = (siteEl && siteEl.value.trim()) || '---';
+                const date = (dateEl && dateEl.value.trim()) || (new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+
+                // Обновляем топ
+                let existing = leaders.find(l => l.name.toLowerCase() === name.toLowerCase());
+                if (existing) {
+                    existing.amount = (existing.amount || 0) + amount;
+                    existing.deposits = (existing.deposits || 0) + deposit;
+                    if (tg) existing.tg = tg;
+                    if (site && site !== '---') existing.site = site;
+                } else {
+                    leaders.push({ name, amount, deposits: deposit, tg: tg || '', site });
+                }
+
+                // Сохраняем в глобальную историю
+                globalHistory.push({ name, amount, deposit, site, tg: tg || '---', rerolls: 0, date });
+
+                if (tg) {
+                    saveParticipantTelegram(name, tg);
+                    syncParticipantTelegramToCloud(name, tg);
+                }
+
+                saveToStorage();
+                renderLeaderboard();
+
+                // Очистка полей
+                nameEl.value = '';
+                if (tgEl) tgEl.value = '';
+                if (amtEl) amtEl.value = '';
+                if (depEl) depEl.value = '';
+                if (siteEl) siteEl.value = '';
+                if (dateEl) dateEl.value = '';
+
+                alert('Запись добавлена в статистику');
+            }
+
+            document.getElementById('admin-user-input').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('admin-pass-input').focus(); });
         document.getElementById('admin-pass-input').addEventListener('keydown', e => { if (e.key === 'Enter') submitAdminLogin(); });
     </script>
 
@@ -2029,6 +2150,18 @@
             <div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
                 <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:8px;">Аккаунты (регистрации)</div>
                 <div id="admin-accounts-list" style="max-height:220px; overflow:auto;">(нет данных)</div>
+            </div>
+            <div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:8px;">Добавить запись в статистику (ручной ввод)</div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center;">
+                    <input id="manual-name" placeholder="Никнейм" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <input id="manual-tg" placeholder="Telegram @user" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <input id="manual-amount" placeholder="Вывод (₽)" type="number" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <input id="manual-deposit" placeholder="Депозит (₽)" type="number" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <input id="manual-site" placeholder="Сайт / Проект" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <input id="manual-date" placeholder="Дата (опционально)" style="padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                </div>
+                <div style="margin-top:8px; text-align:right;"><button class="btn-main" onclick="addManualHistory()" style="padding:8px 12px;">Добавить в статистику</button></div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
