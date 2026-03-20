@@ -193,6 +193,13 @@
             font-size: 12px;
             outline: none;
         }
+        /* Buttons in the left menu - more prominent, specialized font */
+        .menu-panel .btn-main, .menu-panel .btn-purple, .menu-panel .btn-codeword {
+            font-family: 'Orbitron', 'Inter', sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+        }
         .modal {
             display: none;
             position: fixed;
@@ -276,17 +283,19 @@
         }
         /* ===== конец изменения 2 ===== */
         .timer-display {
-            font-size: 42px;
-            font-family: 'Orbitron', monospace;
-            color: var(--accent-neon-blue);
+            /* Updated: much larger and more eye-catching timer */
+            font-size: 72px;
+            font-family: 'Orbitron', 'Inter', sans-serif;
+            font-weight: 900;
+            color: #38bdf8;
             text-align: center;
             cursor: pointer;
-            padding: 15px;
-            background: var(--dark-purple);
-            border-radius: 15px;
-            border: 1px solid var(--accent-neon-blue);
-            text-shadow: none;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            padding: 20px 18px;
+            background: linear-gradient(180deg, rgba(2,6,23,0.98), rgba(4,10,30,0.95));
+            border-radius: 18px;
+            border: 2px solid rgba(56,189,248,0.18);
+            text-shadow: 0 6px 30px rgba(56,189,248,0.06);
+            box-shadow: 0 12px 40px rgba(56,189,248,0.06), inset 0 0 20px rgba(0,0,0,0.4);
         }
         .chat-container {
             flex-grow: 1;
