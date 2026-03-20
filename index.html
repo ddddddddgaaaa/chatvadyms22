@@ -660,6 +660,7 @@
             <option value="yellow">Желтый</option>
             <option value="cyan">Бирюзовый</option>
         </select>
+        <div id="cloud-status" style="margin-left:12px; font-size:12px; color:#94a3b8;">Cloud: —</div>
     </div>
     <div class="container">
         <div class="panel menu-panel">
@@ -742,7 +743,11 @@
             <p>Укажи канал. После этого подключится чат и откроется сайт.</p>
             <div class="auth-form">
                 <input type="text" id="auth-channel-input" placeholder="Канал Twitch без @" autocomplete="off">
-                <button class="btn-main btn-purple" type="button" onclick="applyAuthSettings()">ВОЙТИ</button>
+                <input type="password" id="auth-pass-input" placeholder="Пароль (впервые — задайте новый)" autocomplete="off">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-main btn-purple" type="button" onclick="handleInitialAuth()">ВОЙТИ / РЕГИСТРАЦИЯ</button>
+                    <button class="btn-main" type="button" onclick="openAuthHelp()">?</button>
+                </div>
             </div>
             <div class="auth-note">Данные сохраняются в браузере и подставляются автоматически.</div>
         </div>
@@ -761,6 +766,18 @@
         </div>
     <div class="win-grid" style="display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; flex-grow: 1; margin-top: 20px; overflow: hidden;"><div class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column;"><h4 style="margin-top:0; color: var(--accent-neon-blue);">Сообщения в этом стриме:</h4><div id="win-chat-history" style="overflow-y:auto; flex-grow:1;"></div></div><div id="win-stat-card" class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--accent-neon-blue);"><h4 style="margin-top:0; color: var(--accent-neon-blue);">История игрока (Global):</h4><div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;"><div style="display: flex; gap: 20px;"><div><small>Выигрышей:</small> <div id="win-count-stat" class="editable-stat" onclick="editWinnerCounter('count')" style="font-size: 20px; font-weight: bold;">0</div></div><div><small>Всего вывел:</small> <div id="win-sum-stat" class="editable-stat" onclick="editWinnerCounter('sum')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div></div><div><small>Всего депозитов:</small> <div id="win-dep-stat" class="editable-stat" onclick="editWinnerCounter('dep')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div></div><div id="win-drop-history" style="overflow-y:auto; flex-grow:1; border-top: 1px solid #333; padding-top: 10px;"></div></div><div class="win-form" style="background: rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; display: flex; flex-direction: column; gap: 12px; border: 1px solid var(--accent-neon-blue);"><h3 style="margin:0; color: var(--accent-neon-blue);">Записать результат</h3><input type="number" id="win-amount-input" placeholder="Сумма вывода (RUB)"><input type="number" id="win-deposit-input" placeholder="Сумма депозита (RUB)"><input type="text" id="win-tg-input" placeholder="Telegram @username"><input type="text" id="win-site-input" placeholder="Сайт / Проект"><button class="btn-main btn-purple" style="margin-top:10px" onclick="saveWinnerStats()">СОХРАНИТЬ 📊</button><button class="btn-main" onclick="window.open('https://followage.showmasterokda.com/?user=' + currentWinner, '_blank')">ПОДПИСКИ 🔗</button><button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button><button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button></div></div><div class="watermark">(TG - vadymtm90)</div></div></div>
 
+    <script>
+        // Firebase config injected from Firebase Console (provided by user)
+        window.FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDZYBxqh05e9HrEQXlaVYglP2RbPFdcivA",
+            authDomain: "bot-podkrutka.firebaseapp.com",
+            projectId: "bot-podkrutka",
+            storageBucket: "bot-podkrutka.firebasestorage.app",
+            messagingSenderId: "208233505545",
+            appId: "1:208233505545:web:fb12241a04ed6f52b2e9d8",
+            measurementId: "G-TCH4QTYH8V"
+        };
+    </script>
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <script>
@@ -855,6 +872,8 @@
         let userRolesCache = {};
         let cloudDb = null;
         let cloudReady = false;
+        let accounts = {}; // username -> { username, salt, passwordHash, createdAt, lastLogin }
+        let currentAccount = null;
         let socket = null;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTick() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); }
@@ -943,11 +962,176 @@
                 cloudDb = firebase.firestore();
                 cloudReady = true;
                 await loadParticipantProfilesFromCloud();
+                // подписка и загрузка общего состояния
+                await loadAppStateFromCloud();
                 subscribeRigFromCloud(); // подписка на изменения подкрутки в реальном времени
+                subscribeAppStateFromCloud();
+                subscribeAccountsFromCloud();
             } catch (error) {
                 cloudReady = false;
                 console.error('Firebase init error:', error);
             }
+        }
+
+        // ===== Accounts (mini auth) =====
+        async function hashPassword(password, salt) {
+            const enc = new TextEncoder();
+            const data = enc.encode(password + '::' + salt);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function makeSalt() {
+            const arr = new Uint8Array(12);
+            crypto.getRandomValues(arr);
+            return Array.from(arr).map(n => n.toString(16).padStart(2,'0')).join('');
+        }
+
+        async function handleInitialAuth() {
+            const nick = sanitizeChannelName(document.getElementById('auth-channel-input').value || '');
+            const pass = (document.getElementById('auth-pass-input').value || '').trim();
+            if (!nick) return alert('Введите ник канала.');
+            // try cloud first
+            if (cloudReady && cloudDb) {
+                try {
+                    const doc = await cloudDb.collection('accounts').doc(nick).get();
+                    if (!doc.exists) {
+                        // register
+                        if (!pass) return alert('Аккаунт не найден — введите пароль для регистрации.');
+                        await registerAccount(nick, pass);
+                        alert('Аккаунт зарегистрирован. Вы вошли.');
+                    } else {
+                        const data = doc.data() || {};
+                        const ok = await verifyLogin(nick, pass, data);
+                        if (!ok) return alert('Неверный пароль.');
+                        await updateLastLogin(nick);
+                    }
+                    currentAccount = nick;
+                    currentChannelName = nick;
+                    saveToStorage();
+                    updateChannelUi();
+                    initTwitchEmbed();
+                    connectTwitchSocket();
+                    closeAuthModal();
+                } catch (e) {
+                    console.error('handleInitialAuth cloud error', e);
+                    alert('Ошибка связи с облаком. Попробуйте позже.');
+                }
+            } else {
+                // fallback localStorage accounts
+                const local = JSON.parse(localStorage.getItem('bot_accounts') || '{}');
+                const entry = local[nick];
+                if (!entry) {
+                    if (!pass) return alert('Аккаунт не найден — введите пароль для регистрации.');
+                    const salt = makeSalt();
+                    const passwordHash = await hashPassword(pass, salt);
+                    local[nick] = { username: nick, salt, passwordHash, createdAt: new Date().toISOString(), lastLogin: new Date().toISOString() };
+                    localStorage.setItem('bot_accounts', JSON.stringify(local));
+                    accounts[nick] = local[nick];
+                    alert('Локальный аккаунт зарегистрирован и вы вошли.');
+                } else {
+                    const passwordHash = await hashPassword(pass, entry.salt);
+                    if (passwordHash !== entry.passwordHash) return alert('Неверный пароль.');
+                    entry.lastLogin = new Date().toISOString();
+                    local[nick] = entry;
+                    localStorage.setItem('bot_accounts', JSON.stringify(local));
+                    accounts[nick] = entry;
+                    alert('Вход выполнен.');
+                }
+                currentAccount = nick;
+                currentChannelName = nick;
+                saveToStorage();
+                updateChannelUi();
+                initTwitchEmbed();
+                connectTwitchSocket();
+                closeAuthModal();
+            }
+        }
+
+        async function registerAccount(nick, pass) {
+            const salt = makeSalt();
+            const passwordHash = await hashPassword(pass, salt);
+            const doc = {
+                username: nick,
+                salt,
+                passwordHash,
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString()
+            };
+            accounts[nick] = doc;
+            try {
+                if (cloudReady && cloudDb) await cloudDb.collection('accounts').doc(nick).set(doc);
+                else localStorage.setItem('bot_accounts', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('bot_accounts')||'{}'), { [nick]: doc })));
+            } catch (e) { console.error('registerAccount error', e); }
+        }
+
+        async function verifyLogin(nick, pass, data) {
+            if (!data || !data.passwordHash || !data.salt) return false;
+            const ph = await hashPassword(pass, data.salt);
+            return ph === data.passwordHash;
+        }
+
+        async function updateLastLogin(nick) {
+            try {
+                if (cloudReady && cloudDb) {
+                    await cloudDb.collection('accounts').doc(nick).set({ lastLogin: new Date().toISOString() }, { merge: true });
+                } else {
+                    const local = JSON.parse(localStorage.getItem('bot_accounts') || '{}');
+                    if (local[nick]) { local[nick].lastLogin = new Date().toISOString(); localStorage.setItem('bot_accounts', JSON.stringify(local)); }
+                }
+            } catch (e) { console.error('updateLastLogin error', e); }
+        }
+
+        async function loadAccountsFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                const snapshot = await cloudDb.collection('accounts').get();
+                snapshot.forEach(doc => { accounts[doc.id] = doc.data(); });
+            } catch (e) { console.error('loadAccountsFromCloud', e); }
+        }
+
+        function subscribeAccountsFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                cloudDb.collection('accounts').onSnapshot(qs => {
+                    qs.forEach(ch => {
+                        if (ch.type === 'added' || ch.type === 'modified') accounts[ch.doc.id] = ch.doc.data();
+                        if (ch.type === 'removed') delete accounts[ch.doc.id];
+                    });
+                    renderAccountsList();
+                });
+            } catch (e) { console.error('subscribeAccountsFromCloud', e); }
+        }
+
+        function renderAccountsList() {
+            const cont = document.getElementById('admin-accounts-list');
+            if (!cont) return;
+            const rows = Object.keys(accounts).sort().map(k => {
+                const a = accounts[k] || {};
+                return `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.03);"><div><b>${a.username}</b><div style="font-size:12px;color:#94a3b8;">Создан: ${a.createdAt ? a.createdAt.split('T')[0] : '—'} | Последний вход: ${a.lastLogin ? a.lastLogin.split('T')[0] : '—'}</div></div><div><button onclick="promptResetPassword('${a.username}')" style="background:none;border:1px solid rgba(255,255,255,0.06);padding:6px;border-radius:6px;color:var(--accent-neon-blue);">Сбросить пароль</button></div></div>`;
+            }).join('');
+            cont.innerHTML = rows || '<div style="color:#666; padding:12px;">Нет аккаунтов</div>';
+        }
+
+        async function promptResetPassword(nick) {
+            const ok = confirm(`Сбросить пароль для ${nick}?`);
+            if (!ok) return;
+            const np = prompt('Новый пароль:');
+            if (!np) return alert('Пароль не задан.');
+            const salt = makeSalt();
+            const passwordHash = await hashPassword(np, salt);
+            const doc = { salt, passwordHash, lastResetAt: new Date().toISOString() };
+            accounts[nick] = Object.assign({}, accounts[nick] || {}, doc);
+            try {
+                if (cloudReady && cloudDb) await cloudDb.collection('accounts').doc(nick).set(doc, { merge: true });
+                else {
+                    const local = JSON.parse(localStorage.getItem('bot_accounts') || '{}');
+                    if (local[nick]) { local[nick].salt = salt; local[nick].passwordHash = passwordHash; local[nick].lastResetAt = new Date().toISOString(); localStorage.setItem('bot_accounts', JSON.stringify(local)); }
+                }
+                renderAccountsList();
+                alert('Пароль сброшен.');
+            } catch (e) { console.error('promptResetPassword', e); alert('Ошибка при сбросе пароля.'); }
         }
         function saveToStorage() {
             localStorage.setItem('bot_top_leaders', JSON.stringify(leaders));
@@ -955,6 +1139,100 @@
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
             localStorage.setItem('bot_participant_states', JSON.stringify(participantStates));
             localStorage.setItem('bot_channel_name', currentChannelName);
+            // push snapshot to cloud (debounced)
+            cloudSaveAppStateDebounced();
+        }
+
+        // ===== Firebase app state sync =====
+        let _cloudSaveTimeout = null;
+        async function cloudSaveAppState() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                const snapshot = {
+                    leaders: leaders || [],
+                    globalHistory: globalHistory || [],
+                    participantProfiles: participantProfiles || {},
+                    participantStates: participantStates || {},
+                    participants: Array.from(participants || []),
+                    channelName: currentChannelName || '',
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                };
+                await cloudDb.collection('app').doc('appState').set(snapshot, { merge: true });
+                console.log('cloudSaveAppState: saved snapshot');
+                try { setCloudStatus('saved', 'green'); } catch(e){}
+            } catch (e) {
+                console.error('cloudSaveAppState error:', e);
+                try { setCloudStatus('save error', 'red'); } catch(err){}
+            }
+        }
+
+        function cloudSaveAppStateDebounced() {
+            if (_cloudSaveTimeout) clearTimeout(_cloudSaveTimeout);
+            _cloudSaveTimeout = setTimeout(() => {
+                cloudSaveAppState();
+                _cloudSaveTimeout = null;
+            }, 800);
+        }
+
+        async function loadAppStateFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                const doc = await cloudDb.collection('app').doc('appState').get();
+                if (!doc.exists) return;
+                const data = doc.data() || {};
+                console.log('loadAppStateFromCloud: data=', data);
+                try { setCloudStatus('loaded', 'green'); } catch(e){}
+                if (Array.isArray(data.leaders) && data.leaders.length) leaders = data.leaders;
+                if (Array.isArray(data.globalHistory) && data.globalHistory.length) globalHistory = data.globalHistory;
+                if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
+                if (data.participantStates) participantStates = Object.assign({}, participantStates, data.participantStates);
+                if (Array.isArray(data.participants)) {
+                    participants = new Set(data.participants);
+                }
+                saveToStorage();
+                renderLeaderboard();
+                updateFullParticipantsList();
+            } catch (e) {
+                console.error('loadAppStateFromCloud error:', e);
+                try { setCloudStatus('load error', 'red'); } catch(err){}
+            }
+        }
+
+        function subscribeAppStateFromCloud() {
+            if (!cloudReady || !cloudDb) return;
+            try {
+                cloudDb.collection('app').doc('appState').onSnapshot((doc) => {
+                    if (!doc.exists) return;
+                    const data = doc.data() || {};
+                    console.log('subscribeAppStateFromCloud: snapshot', data);
+                    try { setCloudStatus('remote update', 'green'); } catch(e){}
+                    // apply remote updates but avoid overwriting local transient changes blindly
+                    if (Array.isArray(data.leaders)) {
+                        leaders = data.leaders;
+                        renderLeaderboard();
+                    }
+                    if (Array.isArray(data.globalHistory)) {
+                        globalHistory = data.globalHistory;
+                        saveToStorage();
+                    }
+                    if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
+                    if (data.participantStates) participantStates = Object.assign({}, participantStates, data.participantStates);
+                    if (Array.isArray(data.participants)) {
+                        participants = new Set(data.participants);
+                        updateFullParticipantsList();
+                    }
+                });
+            } catch (e) {
+                console.error('subscribeAppStateFromCloud error:', e);
+            }
+        }
+        function setCloudStatus(text, color) {
+            try {
+                const el = document.getElementById('cloud-status');
+                if (!el) return;
+                el.innerText = 'Cloud: ' + text;
+                el.style.color = color === 'green' ? '#34d399' : (color === 'red' ? '#ef4444' : '#94a3b8');
+            } catch (e) { console.warn('setCloudStatus error', e); }
         }
         function applyTheme(themeName) {
             const theme = THEMES[themeName] || THEMES.pink;
@@ -986,6 +1264,9 @@
         function openAuthModal() {
             document.getElementById('auth-channel-input').value = currentChannelName;
             document.getElementById('auth-modal').style.display = 'flex';
+        }
+        function openAuthHelp() {
+            alert('Ввод: укажите Twitch ник. Если такой аккаунт не зарегистрирован — введите пароль и нажмите ВОЙТИ/РЕГИСТРАЦИЯ чтобы создать локальный/облачный аккаунт. Пароли хранятся в зашифрованном виде (SHA-256 + salt).');
         }
         function closeAuthModal() {
             document.getElementById('auth-modal').style.display = 'none';
@@ -1197,6 +1478,7 @@
         function pasteParticipants() { openImportParticipants(); }
         setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
         function saveWinnerStats() { const amt = parseFloat(document.getElementById('win-amount-input').value) || 0; const dep = parseFloat(document.getElementById('win-deposit-input').value) || 0; const tg = document.getElementById('win-tg-input').value.trim(); const site = document.getElementById('win-site-input').value.trim() || '---'; if (tg) { saveParticipantTelegram(currentWinner, tg); syncParticipantTelegramToCloud(currentWinner, tg); } if(amt > 0 || dep > 0) { let existing = leaders.find(l => l.name.toLowerCase() === currentWinner.toLowerCase()); if(existing) { existing.amount += amt; if(!existing.deposits) existing.deposits = 0; existing.deposits += dep; if(tg) existing.tg = tg; if(site !== '---') existing.site = site; } else { leaders.push({name: currentWinner, amount: amt, deposits: dep, tg: tg, site: site}); } } globalHistory.push({ name: currentWinner, amount: amt, deposit: dep, site: site, tg: tg || '---', rerolls: rerollCount, date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString() }); rerollCount = 0; renderLeaderboard(); closeModals(); }
+        
         function openStats() { const stats = {}; globalHistory.forEach(h => { const siteName = h.site || '---'; if(!stats[siteName]) stats[siteName] = { count: 0, sum: 0, deps: 0 }; stats[siteName].count++; stats[siteName].sum += (h.amount || 0); stats[siteName].deps += (h.deposit || 0); }); const body = document.getElementById('stats-body'); body.innerHTML = ''; Object.keys(stats).sort().forEach(site => { body.innerHTML += `<tr><td><b>${site}</b></td><td>${stats[site].count}</td><td>${stats[site].sum.toLocaleString()} ₽</td><td>${stats[site].deps.toLocaleString()} ₽</td><td><button class="btn-edit-row" style="color:var(--accent-neon-blue); background:none; border:none; cursor:pointer;" onclick="editProjectName('${site}')" title="Переименовать проект">✏️</button><button class="btn-delete-row" style="color:red; background:none; border:none; cursor:pointer;" onclick="deleteProjectRecords('${site}')" title="Удалить все записи по проекту">🗑️</button></td></tr>`; }); document.getElementById('stats-modal').style.display = 'flex'; }
         function editProjectName(oldName) { let newName = prompt('Новое название проекта:', oldName); if (newName && newName !== oldName) { globalHistory.forEach(h => { if (h.site === oldName) h.site = newName; }); leaders.forEach(l => { if (l.site === oldName) l.site = newName; }); saveToStorage(); openStats(); renderLeaderboard(); } }
         function deleteProjectRecords(siteName) { if(confirm(`Удалить ВСЕ записи истории по проекту \"${siteName}\"? Это обновит статистику.`)) { globalHistory = globalHistory.filter(h => h.site !== siteName); saveToStorage(); openStats(); } }
@@ -1529,6 +1811,7 @@
             const fSoft = document.getElementById('admin-nick-soft');
             if (f100) f100.value = adminRigNick100;
             if (fSoft) fSoft.value = adminRigNickSoft;
+            renderAccountsList();
             document.getElementById('admin-panel-modal').style.display = 'flex';
         }
         function closeAdminPanel() {
@@ -1724,6 +2007,11 @@
             <div style="margin-bottom:28px; padding:14px 18px; border-radius:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);">
                 <div style="font-size:11px; color:#475569; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;">Текущий статус</div>
                 <div id="admin-rig-status" style="font-size:14px; font-weight:600;"><span style="color:#64748b;">Подкрутка отключена</span></div>
+            </div>
+
+            <div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:8px;">Аккаунты (регистрации)</div>
+                <div id="admin-accounts-list" style="max-height:220px; overflow:auto;">(нет данных)</div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
