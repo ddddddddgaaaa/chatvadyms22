@@ -872,6 +872,7 @@
         let userRolesCache = {};
         let cloudDb = null;
         let cloudReady = false;
+        let appUnsubscribe = null;
         let accounts = {}; // username -> { username, salt, passwordHash, createdAt, lastLogin }
         let currentAccount = null;
         let socket = null;
@@ -1013,6 +1014,7 @@
                     updateChannelUi();
                     initTwitchEmbed();
                     connectTwitchSocket();
+                    try { await loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('handleInitialAuth cloud sync:', e); }
                     closeAuthModal();
                 } catch (e) {
                     console.error('handleInitialAuth cloud error', e);
@@ -1145,6 +1147,11 @@
 
         // ===== Firebase app state sync =====
         let _cloudSaveTimeout = null;
+        function getAppDocId() {
+            const key = sanitizeChannelName(currentChannelName) || 'global';
+            return `appState_${key}`;
+        }
+
         async function cloudSaveAppState() {
             if (!cloudReady || !cloudDb) return;
             try {
@@ -1157,8 +1164,9 @@
                     channelName: currentChannelName || '',
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 };
-                await cloudDb.collection('app').doc('appState').set(snapshot, { merge: true });
-                console.log('cloudSaveAppState: saved snapshot');
+                const docId = getAppDocId();
+                await cloudDb.collection('app').doc(docId).set(snapshot, { merge: true });
+                console.log('cloudSaveAppState: saved snapshot ->', docId);
                 try { setCloudStatus('saved', 'green'); } catch(e){}
             } catch (e) {
                 console.error('cloudSaveAppState error:', e);
@@ -1177,10 +1185,11 @@
         async function loadAppStateFromCloud() {
             if (!cloudReady || !cloudDb) return;
             try {
-                const doc = await cloudDb.collection('app').doc('appState').get();
+                const docId = getAppDocId();
+                const doc = await cloudDb.collection('app').doc(docId).get();
                 if (!doc.exists) return;
                 const data = doc.data() || {};
-                console.log('loadAppStateFromCloud: data=', data);
+                console.log('loadAppStateFromCloud: data=', docId, data);
                 try { setCloudStatus('loaded', 'green'); } catch(e){}
                 if (Array.isArray(data.leaders) && data.leaders.length) leaders = data.leaders;
                 if (Array.isArray(data.globalHistory) && data.globalHistory.length) globalHistory = data.globalHistory;
@@ -1201,10 +1210,16 @@
         function subscribeAppStateFromCloud() {
             if (!cloudReady || !cloudDb) return;
             try {
-                cloudDb.collection('app').doc('appState').onSnapshot((doc) => {
+                // unsubscribe previous listener if present
+                if (typeof appUnsubscribe === 'function') {
+                    try { appUnsubscribe(); } catch (e) { /* ignore */ }
+                    appUnsubscribe = null;
+                }
+                const docId = getAppDocId();
+                appUnsubscribe = cloudDb.collection('app').doc(docId).onSnapshot((doc) => {
                     if (!doc.exists) return;
                     const data = doc.data() || {};
-                    console.log('subscribeAppStateFromCloud: snapshot', data);
+                    console.log('subscribeAppStateFromCloud: snapshot', docId, data);
                     try { setCloudStatus('remote update', 'green'); } catch(e){}
                     // apply remote updates but avoid overwriting local transient changes blindly
                     if (Array.isArray(data.leaders)) {
@@ -1351,7 +1366,7 @@
                 }
             };
         }
-        function applyAuthSettings() {
+        async function applyAuthSettings() {
             const channelValue = sanitizeChannelName(document.getElementById('auth-channel-input').value);
             if (!channelValue) {
                 alert('Введите название канала.');
@@ -1362,6 +1377,8 @@
             updateChannelUi();
             initTwitchEmbed();
             connectTwitchSocket();
+            // load and subscribe to channel-scoped cloud state
+            try { await loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('applyAuthSettings cloud sync:', e); }
             closeAuthModal();
         }
         function renderLeaderboard() { leaders.sort((a,b) => b.amount - a.amount); const container = document.getElementById('leaderboard'); container.innerHTML = ''; leaders.forEach((item, i) => { container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div class="btn-group" style="display:flex; align-items:center; gap:5px;"><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b><button class="btn-edit-row" onclick="editLeader(${i})" style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;">✏️</button><button onclick="deleteLeader(${i})" style="background:none; border:none; color:#555; cursor:pointer; font-size:10px;">🗑️</button></div></div></div>`; }); saveToStorage(); }
