@@ -795,8 +795,7 @@
             </select>
             <button class="btn-main btn-purple" style="margin-top:10px" onclick="saveWinnerStats()">СОХРАНИТЬ 📊</button>
             <button class="btn-main" onclick="window.open('https://followage.showmasterokda.com/?user=' + currentWinner, '_blank')">ПОДПИСКИ 🔗</button>
-            <button class="btn-main" onclick="openMessagesWindow()">СООБЩЕНИЯ</button>
-            <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
+                        <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
             <button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button>
         </div>
     </div>
@@ -1519,6 +1518,9 @@
         function editLeader(index) { let l = leaders[index]; let name = prompt('Никнейм:', l.name); let amount = prompt('Сумма вывода (₽):', l.amount); let deposits = prompt('Сумма депозитов (₽):', l.deposits || 0); let tg = prompt('Telegram:', l.tg || getSavedTelegram(l.name) || ''); let site = prompt('Сайт:', l.site || ''); if (name !== null) { l.name = name; l.amount = parseFloat(amount) || 0; l.deposits = parseFloat(deposits) || 0; l.tg = tg; l.site = site; saveParticipantTelegram(l.name, tg); syncParticipantTelegramToCloud(l.name, tg); renderLeaderboard(); } }
         function deleteLeader(index) { if(confirm('Удалить игрока из топа?')) { leaders.splice(index, 1); renderLeaderboard(); } }
         function copyParticipants() { const list = getActiveParticipants().map((u, i) => `${i + 1}. ${u}`).join('\n'); if (list) { navigator.clipboard.writeText(list).then(() => { alert('Список участников скопирован в буфер обмена!'); }).catch(err => { alert('Ошибка при копировании: ' + err); }); } else { alert('Список участников пуст!'); } }
+function openTwitchChatLink() { const twitchChatLink = 'https://www.twitch.tv/popout/' + CHANNEL + '/viewercard/' + winner + '?popout=';
+  window.open(twitchChatLink, '_blank');
+}
         function toggleParticipantActive(name, active) {
             setParticipantActive(name, active);
             syncParticipantsState();
