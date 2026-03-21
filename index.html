@@ -711,8 +711,8 @@
     </div>
 
     <!-- Модальные окна -->
-    <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th></tr></thead><tbody id="history-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
-    <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th></tr></thead><tbody id="stats-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
+    <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th> </thead><tbody id="history-body"></tbody> </table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
+    <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead> <tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th> </tr></thead><tbody id="stats-body"></tbody> </table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
     <div id="wheel-modal" class="modal"><div class="modal-content"><div class="close-x" onclick="closeModals()">&times;</div><div style="position: relative;"><div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #fff; z-index: 10;"></div><canvas id="wheelCanvas" width="500" height="500"></canvas></div><div class="wheel-controls" style="width: 300px; display: flex; flex-direction: column; gap: 15px; margin-left: 20px;"><h3 style="margin: 0; text-align: center; color: var(--accent-neon-blue);">Настройки</h3><div id="elim-log" style="text-align: center; color: var(--accent-neon-blue); font-weight: bold; min-height: 20px; font-size: 14px;"></div><button class="btn-main" onclick="openImportParticipants()">ВСТАВИТЬ СПИСОК УЧАСТНИКОВ</button><button id="mode-elim" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('elimination')">НА ВЫБЫВАНИЕ</button><button id="mode-normal" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('normal')">ОБЫЧНЫЙ ВЫБОР</button><div style="text-align: center; margin: 10px 0;"><span style="font-size: 13px; color: #888;">Время: <span id="dur-val" style="color:white">5</span> сек.</span><input type="range" id="dur-slider" min="1" max="15" value="5" oninput="document.getElementById('dur-val').innerText = this.value" style="width:100%; margin-top:5px;"></div><button id="roll-button" class="btn-main btn-purple" style="padding: 20px; font-size: 18px;" onclick="executeSpin()">КРУТИТЬ! 🚀</button></div><div class="watermark">(TG - vadymtm90)</div></div></div>
     <div id="import-participants-modal" class="modal">
         <div class="modal-content import-modal-content">
@@ -980,7 +980,7 @@
                 updateAdminStatus();
             });
 
-            // Сайты (глобальные, но сохраним как есть)
+            // Сайты (глобальные)
             unsubSites = cloudDb.collection('adminSettings').doc('sites').onSnapshot(doc => {
                 siteOptions = doc.exists ? (doc.data().options || []) : [];
                 renderSiteSelects();
@@ -1307,8 +1307,41 @@
             return pool[Math.floor(Math.random() * pool.length)];
         }
 
-        // --- Рулетка (сокращённо, но работоспособно) ---
-        function openWheel() { wheelParticipants = Array.from(participants); document.getElementById('wheel-modal').style.display = 'flex'; setSpinMode('elimination'); drawWheel(0); }
+        function pickRiggedElimination(pool) {
+            if (!pool || pool.length === 0) return null;
+            if (pool.length === 1) return pool[0];
+            const lowerPool = pool.map(n => n.toLowerCase());
+            if (adminRigMode === '100') {
+                const idx = lowerPool.indexOf(adminRigNick100.toLowerCase());
+                if (idx !== -1) {
+                    const others = pool.filter((p, i) => i !== idx);
+                    return others[Math.floor(Math.random() * others.length)];
+                }
+            }
+            if (adminRigMode === 'once' && !adminRigOnceUsed) {
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const others = pool.filter((p, i) => i !== idx);
+                    if (others.length > 0) return others[Math.floor(Math.random() * others.length)];
+                }
+            }
+            if (adminRigMode === 'soft') {
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const weights = pool.map((_, i) => i === idx ? 0.2 : 1);
+                    const total = weights.reduce((a,b) => a+b, 0);
+                    let r = Math.random() * total;
+                    for (let i=0;i<weights.length;i++) {
+                        r -= weights[i];
+                        if (r <= 0) return pool[i];
+                    }
+                }
+            }
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        // --- Рулетка (полная версия) ---
+        function openWheel() { wheelParticipants = Array.from(participants); document.getElementById('wheel-modal').style.display = 'flex'; document.getElementById('elim-log').innerText = ''; setSpinMode('elimination'); drawWheel(0); }
         function setSpinMode(m) { selectedSpinMode = m; document.getElementById('mode-elim').classList.toggle('is-active-mode', m === 'elimination'); document.getElementById('mode-normal').classList.toggle('is-active-mode', m === 'normal'); wheelParticipants = Array.from(participants); drawWheel(0); }
         function drawWheel(angle) {
             const canvas = document.getElementById('wheelCanvas');
@@ -1318,9 +1351,10 @@
             ctx.clearRect(0, 0, 500, 500);
             if (p.length === 0) return;
             const slice = (Math.PI * 2) / p.length;
+            const colors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
             p.forEach((name, i) => {
                 ctx.beginPath();
-                ctx.fillStyle = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'][i % 10];
+                ctx.fillStyle = colors[i % colors.length];
                 ctx.moveTo(cx, cy);
                 ctx.arc(cx, cy, r, angle + i * slice, angle + (i + 1) * slice);
                 ctx.closePath();
@@ -1335,11 +1369,13 @@
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(angle + i * slice + slice / 2);
+                const textRadius = r * 0.4;
+                let displayName = name.length > 12 ? name.slice(0,10)+'…' : name;
                 ctx.font = 'bold 14px Inter';
                 ctx.fillStyle = '#fff';
                 ctx.shadowBlur = 4;
                 ctx.textBaseline = 'middle';
-                ctx.fillText(name.length > 12 ? name.slice(0,10)+'…' : name, r * 0.4, 0);
+                ctx.fillText(displayName, textRadius, 0);
                 ctx.restore();
             });
             ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 4; ctx.stroke();
@@ -1350,7 +1386,9 @@
             const n = wheelParticipants.length;
             if (n === 0) return;
             const sliceAngle = (Math.PI * 2) / n;
-            let winner = mode === 'elimination' ? pickRiggedElimination(wheelParticipants) : pickRiggedWinner(wheelParticipants);
+            let winner = null;
+            if (mode === 'elimination') winner = pickRiggedElimination(wheelParticipants);
+            else winner = pickRiggedWinner(wheelParticipants);
             let winnerIdx = wheelParticipants.findIndex(w => w === winner);
             if (winnerIdx === -1) winnerIdx = Math.floor(Math.random() * n);
             winner = wheelParticipants[winnerIdx];
@@ -1366,9 +1404,12 @@
                 if (progress < 1) requestAnimationFrame(animate);
                 else {
                     drawWheel(endAngle);
-                    if (mode === 'normal') { showWinnerRef(winner); document.getElementById('roll-button').disabled = false; }
-                    else {
+                    if (mode === 'normal') {
+                        showWinnerRef(winner);
+                        document.getElementById('roll-button').disabled = false;
+                    } else {
                         document.getElementById('elim-log').innerText = '❌ ВЫБЫЛ: ' + winner;
+                        playTick();
                         wheelParticipants.splice(winnerIdx, 1);
                         if (wheelParticipants.length === 0) document.getElementById('roll-button').disabled = false;
                         else if (wheelParticipants.length === 1) setTimeout(() => { drawWheel(0); showWinnerRef(wheelParticipants[0]); document.getElementById('roll-button').disabled = false; }, 1500);
@@ -1380,13 +1421,68 @@
         }
         function executeSpin() { if (wheelParticipants.length === 0) return; document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
         function instantRoll() { const arr = Array.from(participants); if (arr.length < 1) return alert('Нет участников!'); let win = pickRiggedWinner(arr); showWinnerRef(win); }
-        function showWinnerRef(name) { /* полная реализация была ранее, для краткости оставлена заглушка, но в рабочем коде она должна быть полной. В данном финальном ответе она присутствует полностью в предыдущих сообщениях, здесь из-за лимитов сокращена. */ alert('Победитель: '+name); currentWinner = name; document.getElementById('winner-screen').style.display = 'flex'; /* остальное опущено для экономии места, но в итоговом файле будет полная реализация */ }
-        function reSpinToHome() { /* аналогично */ }
+        function playTick() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.value = 1000; gain.gain.value = 0.05; gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); }
+        function showWinnerRef(name) {
+            closeModals();
+            currentWinner = name;
+            winTimerActive = true;
+            document.getElementById('win-nick').innerText = name;
+            document.getElementById('reroll-counter-display').innerText = 'Рероллов: ' + rerollCount;
+            const userHistory = globalHistory.filter(h => h.name.toLowerCase() === name.toLowerCase() && !h.isReroll);
+            const globalRerolls = globalHistory.filter(h => h.name.toLowerCase() === name.toLowerCase() && h.isReroll).length;
+            const totalWon = userHistory.reduce((sum, h) => sum + (h.amount || 0), 0);
+            const totalDep = userHistory.reduce((sum, h) => sum + (h.deposit || 0), 0);
+            const savedTg = getSavedTelegram(name);
+            document.getElementById('win-count-stat').innerText = userHistory.length;
+            document.getElementById('win-sum-stat').innerText = totalWon.toLocaleString() + ' ₽';
+            document.getElementById('win-dep-stat').innerText = totalDep.toLocaleString() + ' ₽';
+            const rerollDisplay = document.getElementById('reroll-counter-display');
+            const globalRerollText = globalRerolls > 0 ? ` | Реролов всего (Global): ${globalRerolls}` : '';
+            rerollDisplay.innerText = 'Рероллов: ' + rerollCount + globalRerollText;
+            const allUserHistory = globalHistory.filter(h => h.name.toLowerCase() === name.toLowerCase());
+            const histCont = document.getElementById('win-drop-history');
+            histCont.innerHTML = allUserHistory.map(h => {
+                if (h.isReroll) return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — БЫЛ РЕРОЛЬНУТ</span></div>`;
+                return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span>${h.date.split(' ')[0]} - ${h.site}</span><div><b style="color:var(--accent-neon-blue)">${h.amount > 0 ? '+' + h.amount + ' ₽' : ''}</b><b style="color:white; margin-left:5px;">${h.deposit > 0 ? '(-' + h.deposit + ' ₽)' : ''}</b></div></div>`;
+            }).reverse().join('') || '<div style="color:#555; text-align:center; margin-top:20px;">Первая победа!</div>';
+            document.getElementById('win-amount-input').value = '';
+            document.getElementById('win-deposit-input').value = '';
+            document.getElementById('win-tg-input').value = savedTg;
+            document.getElementById('win-site-select').value = '---';
+            document.getElementById('winner-screen').style.display = 'flex';
+            const hCont = document.getElementById('win-chat-history');
+            hCont.innerHTML = (userMessages[name] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
+            let s = 0;
+            clearInterval(window.winInt);
+            window.winInt = setInterval(() => { if (winTimerActive) { s++; let sec = s%60, min = Math.floor(s/60), hr = Math.floor(min/60); document.getElementById('win-timer-label').innerText = `${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000);
+        }
+        function reSpinToHome() {
+            rerollCount++;
+            if (currentWinner) {
+                globalHistory.push({
+                    name: currentWinner,
+                    amount: 0,
+                    deposit: 0,
+                    site: '--- БЫЛ РЕРОЛЬНУТ ---',
+                    tg: getSavedTelegram(currentWinner) || '---',
+                    rerolls: rerollCount,
+                    isReroll: true,
+                    date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
+                });
+                addHistoryEntryToCloud(globalHistory[globalHistory.length-1]);
+            }
+            const arr = Array.from(participants);
+            if (arr.length === 0) { closeModals(); return; }
+            const newWinner = pickRiggedWinner(arr);
+            if (newWinner) showWinnerRef(newWinner);
+            else closeModals();
+        }
         function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); document.getElementById('winner-screen').style.display = 'none'; winTimerActive = false; clearInterval(window.winInt); }
         function copyParticipants() { const list = Array.from(participants).map((u,i)=>`${i+1}. ${u}`).join('\n'); if(list) navigator.clipboard.writeText(list).then(()=>alert('Скопировано!')); else alert('Пусто'); }
         function openImportParticipants() { document.getElementById('import-participants-modal').style.display = 'flex'; setImportFormat('csv'); updateImportApplyState(); }
-        function setImportFormat(format) { /* ... */ }
-        function updateImportApplyState() { /* ... */ }
+        let selectedImportFormat = 'csv';
+        function setImportFormat(format) { selectedImportFormat = format; const exampleBox = document.getElementById('import-example-box'); const textarea = document.getElementById('import-textarea'); if (exampleBox) exampleBox.textContent = format === 'json' ? '[\n  "vadym",\n  "player_two",\n  "anotheruser"\n]' : '1 vadym\n2 player_two\n3 anotheruser\n4 testnick'; if (textarea) textarea.placeholder = format === 'json' ? 'Or paste JSON here' : 'Or paste text here'; }
+        function updateImportApplyState() { const button = document.getElementById('import-apply-button'); const textarea = document.getElementById('import-textarea'); button.classList.toggle('is-ready', textarea && textarea.value.trim().length > 0); }
         async function applyImportedParticipants() {
             const raw = document.getElementById('import-textarea').value;
             if (!raw.trim()) return;
@@ -1417,10 +1513,129 @@
         setInterval(()=>{ if(timerRunning && timerSeconds>0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds===0) playAlarm(); } }, 1000);
         function playAlarm() { for(let i=0;i<3;i++) setTimeout(()=>{ const osc=audioCtx.createOscillator(); const gain=audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type='square'; osc.frequency.value=880; gain.gain.value=0.1; gain.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.4); osc.start(); osc.stop(audioCtx.currentTime+0.4); }, i*500); }
 
-        // --- История и статистика (заглушки, в реальном коде полные) ---
-        function openStats() { alert('Статистика доступна в облаке'); }
-        function openHistory() { alert('История доступна в облаке'); }
-        function addManualHistory() { /* ... */ }
+        // --- История и статистика ---
+        function openStats() {
+            const stats = {};
+            globalHistory.forEach(h => {
+                const siteName = h.site || '---';
+                if (!stats[siteName]) stats[siteName] = { count: 0, sum: 0, deps: 0 };
+                stats[siteName].count++;
+                stats[siteName].sum += (h.amount || 0);
+                stats[siteName].deps += (h.deposit || 0);
+            });
+            const body = document.getElementById('stats-body');
+            body.innerHTML = '';
+            Object.keys(stats).sort().forEach(site => {
+                body.innerHTML += `<tr><td><b>${site}</b></td><td>${stats[site].count}</td><td>${stats[site].sum.toLocaleString()} ₽</td><td>${stats[site].deps.toLocaleString()} ₽</td><td><button class="btn-edit-row" style="color:var(--accent-neon-blue); background:none; border:none; cursor:pointer;" onclick="editProjectName('${site}')">✏️</button><button class="btn-delete-row" style="color:red; background:none; border:none; cursor:pointer;" onclick="deleteProjectRecords('${site}')">🗑️</button></td></tr>`;
+            });
+            document.getElementById('stats-modal').style.display = 'flex';
+        }
+        function editProjectName(oldName) {
+            let newName = prompt('Новое название проекта:', oldName);
+            if (newName && newName !== oldName) {
+                globalHistory.forEach(h => { if (h.site === oldName) h.site = newName; });
+                leaders.forEach(l => { if (l.site === oldName) l.site = newName; });
+                updateHistoryInCloud(globalHistory);
+                saveLeaderboardToCloud();
+                openStats();
+                renderLeaderboard();
+            }
+        }
+        function deleteProjectRecords(siteName) {
+            if (confirm(`Удалить ВСЕ записи истории по проекту "${siteName}"?`)) {
+                globalHistory = globalHistory.filter(h => h.site !== siteName);
+                updateHistoryInCloud(globalHistory);
+                openStats();
+            }
+        }
+        function openHistory() {
+            const body = document.getElementById('history-body');
+            body.innerHTML = '';
+            [...globalHistory].reverse().forEach((h, index) => {
+                const realIndex = globalHistory.length - 1 - index;
+                if (h.isReroll) {
+                    body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b; font-weight:bold;">🔄 ${h.name}</td><td style="color:#aaa;">${h.tg || '---'}</td><td style="color:#f59e0b; font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
+                } else {
+                    body.innerHTML += `<tr><td><small>${h.date}</small></td><td style="color:var(--accent-neon-blue); font-weight:bold;">${h.name}</td><td style="color:#aaa;">${h.tg || '---'}</td><td>${h.site}</td><td style="color:var(--accent-neon-blue); font-weight:bold;">${(h.amount || 0).toLocaleString()} ₽</td><td style="color:white; font-weight:bold;">${(h.deposit || 0).toLocaleString()} ₽</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;" onclick="editHistoryItem(${realIndex})">✏️</button><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
+                }
+            });
+            document.getElementById('history-modal').style.display = 'flex';
+        }
+        function editHistoryItem(index) {
+            let h = globalHistory[index];
+            let name = prompt('Игрок:', h.name);
+            let tg = prompt('Telegram:', h.tg || getSavedTelegram(h.name) || '');
+            let site = prompt('Проект:', h.site);
+            let amount = prompt('Вывод (₽):', h.amount);
+            let deposit = prompt('Депозит (₽):', h.deposit);
+            let date = prompt('Дата и время:', h.date);
+            if (name !== null) {
+                h.name = name;
+                h.tg = tg;
+                h.site = site;
+                h.amount = parseFloat(amount) || 0;
+                h.deposit = parseFloat(deposit) || 0;
+                h.date = date;
+                saveParticipantTelegram(h.name, tg);
+                updateHistoryInCloud(globalHistory);
+                openHistory();
+                renderLeaderboard();
+            }
+        }
+        function deleteHistoryItem(index) {
+            if (confirm('Удалить эту запись из истории?')) {
+                globalHistory.splice(index, 1);
+                updateHistoryInCloud(globalHistory);
+                openHistory();
+            }
+        }
+        function editWinnerCounter(type) {
+            if (!currentWinner) return;
+            let val = prompt('Введите новое значение:');
+            if (val !== null) {
+                if (type === 'count') document.getElementById('win-count-stat').innerText = val;
+                if (type === 'sum') document.getElementById('win-sum-stat').innerText = parseInt(val).toLocaleString() + ' ₽';
+                if (type === 'dep') document.getElementById('win-dep-stat').innerText = parseInt(val).toLocaleString() + ' ₽';
+            }
+        }
+        function addManualHistory() {
+            const nameEl = document.getElementById('manual-name');
+            const tgEl = document.getElementById('manual-tg');
+            const amtEl = document.getElementById('manual-amount');
+            const depEl = document.getElementById('manual-deposit');
+            const siteEl = document.getElementById('manual-site-select');
+            const dateEl = document.getElementById('manual-date');
+            if (!nameEl) return alert('Элемент формы не найден');
+            const name = nameEl.value.trim();
+            if (!name) return alert('Введите никнейм');
+            const tg = (tgEl && tgEl.value.trim()) || '';
+            const amount = parseFloat((amtEl && amtEl.value) || 0) || 0;
+            const deposit = parseFloat((depEl && depEl.value) || 0) || 0;
+            const site = (siteEl && (siteEl.value || '').trim()) || '---';
+            const date = (dateEl && dateEl.value.trim()) || (new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString());
+
+            let existing = leaders.find(l => l.name.toLowerCase() === name.toLowerCase());
+            if (existing) {
+                existing.amount = (existing.amount || 0) + amount;
+                existing.deposits = (existing.deposits || 0) + deposit;
+                if (tg) existing.tg = tg;
+                if (site && site !== '---') existing.site = site;
+            } else {
+                leaders.push({ name, amount, deposits: deposit, tg: tg || '', site });
+            }
+            globalHistory.push({ name, amount, deposit, site, tg: tg || '---', rerolls: 0, date });
+            if (tg) saveParticipantTelegram(name, tg);
+            saveLeaderboardToCloud();
+            addHistoryEntryToCloud(globalHistory[globalHistory.length-1]);
+            renderLeaderboard();
+            nameEl.value = '';
+            if (tgEl) tgEl.value = '';
+            if (amtEl) amtEl.value = '';
+            if (depEl) depEl.value = '';
+            if (siteEl) siteEl.value = '---';
+            if (dateEl) dateEl.value = '';
+            alert('Запись добавлена в статистику');
+        }
 
         // --- Аутентификация ---
         async function handleInitialAuth() {
@@ -1455,11 +1670,9 @@
                     closeAuthModal();
                 } catch(e) { console.error(e); alert('Ошибка облака. Попробуйте позже.'); }
             } else {
-                // резерв локально (для краткости опущен)
                 alert('Облако недоступно, попробуйте позже');
             }
         }
-
         async function hashPassword(password, salt) {
             const enc = new TextEncoder();
             const data = enc.encode(password + '::' + salt);
@@ -1624,6 +1837,37 @@
             document.getElementById('logout-btn').onclick = logout;
             document.getElementById('auth-channel-input').addEventListener('keydown', e => { if(e.key === 'Enter') handleInitialAuth(); });
         });
+
+        // Глобальные функции для админ-панели
+        function openAdminLogin() {
+            document.getElementById('admin-login-modal').style.display = 'flex';
+            document.getElementById('admin-user-input').value = '';
+            document.getElementById('admin-pass-input').value = '';
+            document.getElementById('admin-login-error').style.display = 'none';
+        }
+        function closeAdminLogin() { document.getElementById('admin-login-modal').style.display = 'none'; }
+        function submitAdminLogin() {
+            const u = document.getElementById('admin-user-input').value.trim();
+            const p = document.getElementById('admin-pass-input').value.trim();
+            if (u === '10' && p === '10') {
+                closeAdminLogin();
+                openAdminPanel();
+            } else {
+                document.getElementById('admin-login-error').style.display = 'block';
+            }
+        }
+        function openAdminPanel() {
+            updateAdminStatus();
+            document.getElementById('admin-nick-100').value = adminRigNick100;
+            document.getElementById('admin-nick-soft').value = adminRigNickSoft;
+            renderSiteOptionsList();
+            renderSiteSelects();
+            // Загружаем список аккаунтов (не обязательно, но можно)
+            const accList = document.getElementById('admin-accounts-list');
+            if (accList) accList.innerHTML = '<div>Загрузка...</div>';
+            document.getElementById('admin-panel-modal').style.display = 'flex';
+        }
+        function closeAdminPanel() { document.getElementById('admin-panel-modal').style.display = 'none'; }
     </script>
 </body>
 </html>
