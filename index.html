@@ -901,6 +901,7 @@
         let currentAccount = null;
         let socket = null;
         let rigUnsubscribe = null;
+        let participantsUnsubscribe = null; // для отписки от участников
         
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTick() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1000, audioCtx.currentTime); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05); osc.start(); osc.stop(audioCtx.currentTime + 0.05); }
@@ -980,6 +981,10 @@
                 subscribeAccountsFromCloud();
                 loadSiteOptionsFromCloud();
                 subscribeSiteOptionsFromCloud();
+                // Если канал уже выбран, подписываемся на участников
+                if (currentChannelName) {
+                    subscribeParticipantsFromCloud();
+                }
             } catch (error) {
                 cloudReady = false;
                 console.error('Firebase init error:', error);
@@ -1027,6 +1032,8 @@
                     try { await loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('handleInitialAuth cloud sync:', e); }
                     await loadRigForCurrentChannel();
                     subscribeRigForCurrentChannel();
+                    // подписываемся на участников после установки канала
+                    subscribeParticipantsFromCloud();
                     closeAuthModal();
                 } catch (e) {
                     console.error('handleInitialAuth cloud error', e);
@@ -1059,6 +1066,8 @@
                 initTwitchEmbed();
                 connectTwitchSocket();
                 loadRigForCurrentChannelLocal();
+                // для локального режима используем локальный набор участников
+                // подписываться на облако не нужно
                 closeAuthModal();
             }
         }
@@ -1238,7 +1247,7 @@
             localStorage.setItem('bot_global_history', JSON.stringify(globalHistory));
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
             localStorage.setItem('bot_channel_name', currentChannelName);
-            // Сохраняем только leaders, history, profiles, но не participants
+            // participants не сохраняем в localStorage, они идут из Firebase
         }
 
         // ===== Firebase app state sync (leaders + history) =====
@@ -1289,7 +1298,6 @@
                 if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
                 saveToStorage();
                 renderLeaderboard();
-                // participants загружаются отдельно через подписку на документ participants
             } catch (e) {
                 console.error('loadAppStateFromCloud error:', e);
                 try { setCloudStatus('load error', 'red'); } catch(err){}
@@ -1393,9 +1401,16 @@
         }
 
         function subscribeParticipantsFromCloud() {
-            if (!cloudReady || !cloudDb) return;
+            if (!cloudReady || !cloudDb) {
+                // если облако не готово, ничего не подписываем
+                return;
+            }
+            if (participantsUnsubscribe) {
+                try { participantsUnsubscribe(); } catch(e) {}
+                participantsUnsubscribe = null;
+            }
             const docId = `participants_${sanitizeChannelName(currentChannelName)}`;
-            cloudDb.collection('participants').doc(docId).onSnapshot((doc) => {
+            participantsUnsubscribe = cloudDb.collection('participants').doc(docId).onSnapshot((doc) => {
                 if (doc.exists) {
                     const data = doc.data();
                     const newList = data.list || [];
@@ -1560,7 +1575,9 @@
             connectTwitchSocket();
             try { await loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('applyAuthSettings cloud sync:', e); }
             // подписываемся на изменения участников
-            subscribeParticipantsFromCloud();
+            if (cloudReady && cloudDb) {
+                subscribeParticipantsFromCloud();
+            }
             closeAuthModal();
         }
         
@@ -1993,12 +2010,11 @@
         if (currentChannelName) {
             initTwitchEmbed();
             connectTwitchSocket();
-            subscribeParticipantsFromCloud(); // подписываемся на участников
         }
         openAuthModal();
 
         // ============================================================
-        // ADMIN PANEL (rig) — без изменений, кроме подписки на участников
+        // ADMIN PANEL (rig)
         // ============================================================
         let adminRigMode = null;
         let adminRigNick100 = '';
