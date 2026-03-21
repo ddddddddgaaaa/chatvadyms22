@@ -795,7 +795,9 @@
             </select>
             <button class="btn-main btn-purple" style="margin-top:10px" onclick="saveWinnerStats()">СОХРАНИТЬ 📊</button>
             <button class="btn-main" onclick="window.open('https://followage.showmasterokda.com/?user=' + currentWinner, '_blank')">ПОДПИСКИ 🔗</button>
-                        <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
+            <!-- Новая кнопка "СООБЩЕНИЯ" -->
+            <button class="btn-main" onclick="window.open('https://www.twitch.tv/popout/' + currentChannelName + '/viewercard/' + currentWinner + '?popout=', '_blank')">СООБЩЕНИЯ</button>
+            <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
             <button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button>
         </div>
     </div>
@@ -1405,7 +1407,8 @@
                 : 'Бот для прокачек от 0savelka0 - BLUE NEON';
         }
         function openAuthModal() {
-            document.getElementById('auth-channel-input').value = currentChannelName;
+            // Поле канала всегда пустое при открытии (убираем предзаполнение)
+            document.getElementById('auth-channel-input').value = '';
             document.getElementById('auth-modal').style.display = 'flex';
         }
         function openAuthHelp() {
