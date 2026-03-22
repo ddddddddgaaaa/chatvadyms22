@@ -685,10 +685,12 @@
             0%, 100% {
                 text-shadow: 0 0 10px rgba(255, 20, 147, 0.5), 0 0 20px rgba(255, 20, 147, 0.3);
                 opacity: 0.8;
+                transform: scale(1);
             }
             50% {
                 text-shadow: 0 0 20px rgba(255, 20, 147, 0.8), 0 0 40px rgba(255, 20, 147, 0.5);
                 opacity: 1;
+                transform: scale(1.15);
             }
         }
         .animated-header {
@@ -699,8 +701,10 @@
             text-transform: uppercase;
             text-align: center;
             padding: 8px 0;
-            animation: textGlow 2s ease-in-out infinite;
+            animation: textGlow 2.5s ease-in-out infinite;
             margin-bottom: 8px;
+            display: inline-block;
+            width: 100%;
         }
         .user-nick-display {
             position: fixed;
