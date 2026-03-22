@@ -1734,8 +1734,30 @@
         }
         
         function openStats() { const stats = {}; globalHistory.forEach(h => { const siteName = h.site || '---'; if(!stats[siteName]) stats[siteName] = { count: 0, sum: 0, deps: 0 }; stats[siteName].count++; stats[siteName].sum += (h.amount || 0); stats[siteName].deps += (h.deposit || 0); }); const body = document.getElementById('stats-body'); body.innerHTML = ''; Object.keys(stats).sort().forEach(site => { body.innerHTML += `<tr><td><b>${site}</b></td><td>${stats[site].count}</td><td>${stats[site].sum.toLocaleString()} ₽</td><td>${stats[site].deps.toLocaleString()} ₽</td><td><button class="btn-edit-row" style="color:var(--accent-neon-blue); background:none; border:none; cursor:pointer;" onclick="editProjectName('${site}')" title="Переименовать проект">✏️</button><button class="btn-delete-row" style="color:red; background:none; border:none; cursor:pointer;" onclick="deleteProjectRecords('${site}')" title="Удалить все записи по проекту">🗑️</button></td></tr>`; }); document.getElementById('stats-modal').style.display = 'flex'; }
-        function editProjectName(oldName) { let newName = prompt('Новое название проекта:', oldName); if (newName && newName !== oldName) { globalHistory.forEach(h => { if (h.site === oldName) h.site = newName; }); leaders.forEach(l => { if (l.site === oldName) l.site = newName; }); saveToStorage(); openStats(); renderLeaderboard(); } }
-        function deleteProjectRecords(siteName) { if(confirm(`Удалить ВСЕ записи истории по проекту \"${siteName}\"? Это обновит статистику.`)) { globalHistory = globalHistory.filter(h => h.site !== siteName); saveToStorage(); openStats(); } }
+        function editProjectName(oldName) { 
+            let newName = prompt('Новое название проекта:', oldName); 
+            if (newName && newName !== oldName) { 
+                globalHistory.forEach(h => { if (h.site === oldName) h.site = newName; }); 
+                leaders.forEach(l => { if (l.site === oldName) l.site = newName; }); 
+                saveToStorage(); 
+                openStats(); 
+                renderLeaderboard(); 
+            } 
+        }
+        function deleteProjectRecords(siteName) { 
+            if(confirm(`Удалить ВСЕ записи истории по проекту \"${siteName}\"? Это обновит статистику и топ.`)) { 
+                // Удаляем записи из истории
+                globalHistory = globalHistory.filter(h => h.site !== siteName); 
+                // Пересчитываем топ: удаляем или обновляем лидеров, у которых все записи были по этому проекту
+                leaders = leaders.filter(leader => {
+                    const leaderHistory = globalHistory.filter(h => h.name.toLowerCase() === leader.name.toLowerCase());
+                    return leaderHistory.length > 0; // оставляем только если есть другие записи
+                });
+                saveToStorage(); 
+                openStats(); 
+                renderLeaderboard();
+            } 
+        }
         function openHistory() {
             const body = document.getElementById('history-body');
             body.innerHTML = '';
@@ -1750,7 +1772,20 @@
             document.getElementById('history-modal').style.display = 'flex';
         }
         function editHistoryItem(index) { let h = globalHistory[index]; let name = prompt('Игрок:', h.name); let tg = prompt('Telegram:', h.tg || getSavedTelegram(h.name) || ''); let site = prompt('Проект:', h.site); let amount = prompt('Вывод (₽):', h.amount); let deposit = prompt('Депозит (₽):', h.deposit); let date = prompt('Дата и время:', h.date); if (name !== null) { h.name = name; h.tg = tg; h.site = site; h.amount = parseFloat(amount) || 0; h.deposit = parseFloat(deposit) || 0; h.date = date; saveParticipantTelegram(h.name, tg); syncParticipantTelegramToCloud(h.name, tg); saveToStorage(); openHistory(); renderLeaderboard(); } }
-        function deleteHistoryItem(index) { if(confirm('Удалить эту запись из истории?')) { globalHistory.splice(index, 1); saveToStorage(); openHistory(); } }
+        function deleteHistoryItem(index) { 
+            if(confirm('Удалить эту запись из истории?')) { 
+                const deletedItem = globalHistory[index];
+                globalHistory.splice(index, 1); 
+                // Если это была последняя запись для этого игрока, удаляем его из топа
+                const remainingForPlayer = globalHistory.filter(h => h.name.toLowerCase() === deletedItem.name.toLowerCase());
+                if (remainingForPlayer.length === 0) {
+                    leaders = leaders.filter(l => l.name.toLowerCase() !== deletedItem.name.toLowerCase());
+                }
+                saveToStorage(); 
+                openHistory(); 
+                renderLeaderboard();
+            } 
+        }
         function editWinnerCounter(type) { if (!currentWinner) return; let val = prompt('Введите новое значение:'); if (val !== null) { if (type === 'count') document.getElementById('win-count-stat').innerText = val; if (type === 'sum') document.getElementById('win-sum-stat').innerText = parseInt(val).toLocaleString() + ' ₽'; if (type === 'dep') document.getElementById('win-dep-stat').innerText = parseInt(val).toLocaleString() + ' ₽'; } }
         function showWinnerRef(name) {
             closeModals();
@@ -1907,10 +1942,26 @@
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(angle + i * slice + slice / 2);
-                const textRadius = r * 0.35;
-                const maxArcWidth = slice * textRadius * 0.9;
-                const maxFont = Math.min(18, Math.max(12, Math.floor(200 / p.length)));
-                const minFont = 9;
+                const textRadius = r * 0.4; // увеличиваем радиус текста для лучшей видимости
+                const maxArcWidth = slice * textRadius * 0.85; // немного уменьшаем ширину для лучшего размещения
+                // Адаптивный размер шрифта в зависимости от количества участников
+                let maxFont, minFont;
+                if (p.length <= 5) {
+                    maxFont = 20;
+                    minFont = 14;
+                } else if (p.length <= 10) {
+                    maxFont = 16;
+                    minFont = 11;
+                } else if (p.length <= 20) {
+                    maxFont = 13;
+                    minFont = 9;
+                } else if (p.length <= 40) {
+                    maxFont = 11;
+                    minFont = 7;
+                } else {
+                    maxFont = 9;
+                    minFont = 6;
+                }
                 let displayName = String(name || '');
                 let chosenFont = maxFont;
                 for (let fs = maxFont; fs >= minFont; fs--) {
@@ -1921,13 +1972,18 @@
                 ctx.font = `bold ${minFont}px Inter`;
                 if (ctx.measureText(displayName).width > maxArcWidth) {
                     let txt = displayName;
+                    // Обрезаем имя постепенно, пока оно не поместится
                     while (txt.length > 1) {
                         txt = txt.slice(0, -1);
                         const test = txt + '…';
-                        if (ctx.measureText(test).width <= maxArcWidth) { displayName = test; break; }
+                        if (ctx.measureText(test).width <= maxArcWidth) { 
+                            displayName = test; 
+                            break; 
+                        }
                     }
-                    if (displayName.length > 12 && ctx.measureText(displayName).width > maxArcWidth) {
-                        displayName = displayName.substring(0, 12) + '…';
+                    // Если даже одна буква не помещается, показываем минимум
+                    if (displayName.length > 1 && ctx.measureText(displayName).width > maxArcWidth) {
+                        displayName = displayName.substring(0, 1) + '…';
                     }
                 }
                 ctx.fillStyle = '#ffffff';
@@ -2025,7 +2081,16 @@
             requestAnimationFrame(animate);
         }
         function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); let win = pickRiggedWinner(arr); showWinnerRef(win); }
-        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); document.getElementById('winner-screen').style.display = 'none'; winTimerActive = false; clearInterval(window.winInt); }
+        function closeModals() { 
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); 
+            document.getElementById('winner-screen').style.display = 'none'; 
+            winTimerActive = false; 
+            clearInterval(window.winInt);
+            // Останавливаем автокрут при закрытии окна рулетки
+            autoSpinEnabled = false;
+            const autos = document.getElementById('autoskip-checkbox');
+            if (autos) autos.checked = false;
+        }
         async function resetAll() { 
             if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { 
                 await updateParticipantsInFirebase([], true);
