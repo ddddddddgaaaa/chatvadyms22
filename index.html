@@ -675,7 +675,7 @@
                 <div class="menu-wave wave-b"></div>
             </div>
             <div style="flex: 1;"></div>
-            <button class="btn-main" onclick="resetAll()">Сброс участников</button>
+            <button class="btn-main" onclick="resetAll()">СБРОС УЧАСТНИКОВ И В РУЛЕТКЕ</button>
             <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">22</span></button>
             <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
             <button class="btn-main btn-purple" onclick="instantRoll()">БЫСТРЫЙ РОЛЛ</button>
@@ -908,8 +908,7 @@
         function playAlarm() { for(let i=0; i<3; i++) { setTimeout(() => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'square'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); osc.start(); osc.stop(audioCtx.currentTime + 0.4); }, i * 500); } }
         function getRoleData(user, badgeStr = '') { let low = user.toLowerCase(); if(badgeStr.includes('broadcaster') || low === currentChannelName.toLowerCase()) return { cls: 'user-owner', prefix: B_OWNER }; if(badgeStr.includes('moderator') || MODS.includes(low)) return { cls: 'user-mod', prefix: B_MOD }; if(badgeStr.includes('vip') || VIPS.includes(low)) return { cls: 'user-vip', prefix: B_VIP }; return { cls: '', prefix: '' }; }
         function hasFirebaseConfig() {
-            // Cloud sync disabled — force local-only mode
-            return false;
+            return Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId);
         }
         function getProfileKey(name) { return String(name || '').trim().toLowerCase(); }
         function getSavedTelegram(name) {
@@ -1162,7 +1161,7 @@
             list.innerHTML = (siteOptions || []).map(s => `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03);"><span>${s}</span><button onclick="removeSiteOption('${encodeURIComponent(s)}')" style="background:none;border:1px solid rgba(255,255,255,0.06);padding:4px;border-radius:6px;color:var(--accent-neon-blue);">Удалить</button></div>`).join('') || '<div style="color:#666; padding:8px;">Нет сайтов</div>';
         }
 
-        function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function escapeHtml(str) { return String(str).replace(/&/g,'&').replace(/</g,'<').replace(/>/g,'>').replace(/"/g,'"'); }
 
         function addSiteOptionFromInput() {
             const inp = document.getElementById('site-option-input');
@@ -1683,13 +1682,22 @@
                 alert('Не удалось найти участников в этом списке.');
                 return;
             }
-            const replace = document.getElementById('import-replace-checkbox').checked;
-            await updateParticipantsInFirebase(parsedNames, replace);
+            // Добавляем участников в рулетку без замены текущих
+            const currentParticipants = getActiveParticipants();
+            const newParticipants = parsedNames.filter(name => !currentParticipants.includes(name));
+            
+            if (newParticipants.length > 0) {
+                // Добавляем новых участников к текущим
+                const allParticipants = [...currentParticipants, ...newParticipants];
+                await updateParticipantsInFirebase(allParticipants, false);
+            }
+            
             document.getElementById('import-textarea').value = '';
             document.getElementById('import-replace-checkbox').checked = false;
             updateImportApplyState();
             closeModals();
-            alert(`Добавлено участников: ${parsedNames.length}`);
+            // Go directly to wheel
+            openWheel();
         }
         function pasteParticipants() { openImportParticipants(); }
         setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
