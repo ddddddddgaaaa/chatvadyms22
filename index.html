@@ -681,6 +681,44 @@
             flex: 1;
             margin-bottom: 0;
         }
+        @keyframes textGlow {
+            0%, 100% {
+                text-shadow: 0 0 10px rgba(255, 20, 147, 0.5), 0 0 20px rgba(255, 20, 147, 0.3);
+                opacity: 0.8;
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(255, 20, 147, 0.8), 0 0 40px rgba(255, 20, 147, 0.5);
+                opacity: 1;
+            }
+        }
+        .animated-header {
+            font-size: 12px;
+            color: var(--accent-neon-blue);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: center;
+            padding: 8px 0;
+            animation: textGlow 2s ease-in-out infinite;
+            margin-bottom: 8px;
+        }
+        .user-nick-display {
+            position: fixed;
+            top: 14px;
+            right: 18px;
+            z-index: 10001;
+            font-size: 12px;
+            color: var(--accent-neon-blue);
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid var(--panel-border);
+            box-shadow: inset 0 0 18px rgba(0,0,0,0.28);
+            animation: textGlow 2s ease-in-out infinite;
+        }
         @media (max-width: 980px) {
             .import-layout {
                 grid-template-columns: 1fr;
@@ -736,6 +774,7 @@
             <div class="middle-split">
                 <div class="red-participants">
                     <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
+                    <div class="animated-header" id="participation-header">ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ (22)</div>
                     <div id="full-participants-list"></div>
                     <button class="btn-main" style="margin: 10px 12px; width: calc(100% - 24px);" onclick="copyParticipants()">СКОПИРОВАТЬ УЧАСТНИКОВ</button>
                 </div>
@@ -1515,6 +1554,22 @@
             document.title = currentChannelName
                 ? `Бот для прокачек от 0savelka0 - ${currentChannelName}`
                 : 'Бот для прокачек от 0savelka0 - BLUE NEON';
+            updateUserNickDisplay();
+        }
+        function updateUserNickDisplay() {
+            let display = document.querySelector('.user-nick-display');
+            if (!display) {
+                display = document.createElement('div');
+                display.className = 'user-nick-display';
+                document.body.appendChild(display);
+            }
+            display.textContent = currentChannelName ? currentChannelName.toUpperCase() : '---';
+        }
+        function updateParticipationHeader() {
+            const header = document.getElementById('participation-header');
+            if (header) {
+                header.textContent = `ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ (${currentCodeword})`;
+            }
         }
         function openAuthModal() {
             document.getElementById('auth-channel-input').value = '';
@@ -1675,7 +1730,7 @@
         function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
         function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
         function enableTimerEdit() { timerRunning = false; const d = document.getElementById('timer'), i = document.getElementById('timer-input'); d.style.display = 'none'; i.style.display = 'block'; i.value = d.innerText; i.focus(); i.onblur = () => { let p = i.value.split(':').map(Number).reverse(); timerSeconds = (p[0]||0) + (p[1]||0)*60 + (p[2]||0)*3600; updateTimerDisplay(); i.style.display = 'none'; d.style.display = 'block'; }; }
-        function changeCodeword() { let newWord = prompt('Введите новое кодовое слово (сейчас: ' + currentCodeword + '):'); if (newWord !== null && newWord.trim() !== '') { currentCodeword = newWord.trim(); document.getElementById('codeword-display').innerText = currentCodeword; } }
+        function changeCodeword() { let newWord = prompt('Введите новое кодовое слово (сейчас: ' + currentCodeword + '):'); if (newWord !== null && newWord.trim() !== '') { currentCodeword = newWord.trim(); document.getElementById('codeword-display').innerText = currentCodeword; updateParticipationHeader(); } }
         function parseImportedParticipants(raw, format) {
             if (!raw.trim()) return [];
             if (format === 'json') {
