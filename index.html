@@ -240,6 +240,47 @@
             filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
         }
 
+        /* === Красивое поле для ввода времени === */
+        .dur-input-wrapper {
+            text-align: center;
+            margin: 4px 0;
+        }
+        .dur-input-wrapper label {
+            font-size: 13px;
+            color: #888;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.03);
+            padding: 6px 12px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+        #dur-input {
+            width: 90px;
+            padding: 8px 12px;
+            background: #0b1220;
+            border: 1px solid var(--accent-neon-blue);
+            border-radius: 40px;
+            color: #e2e8f0;
+            text-align: center;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 4px rgba(255,20,147,0.2);
+        }
+        #dur-input:focus {
+            outline: none;
+            border-color: var(--accent-neon-blue);
+            box-shadow: 0 0 12px rgba(255,20,147,0.5);
+            transform: scale(1.02);
+        }
+        /* спиннер убрать для chrome */
+        #dur-input::-webkit-inner-spin-button,
+        #dur-input::-webkit-outer-spin-button {
+            opacity: 0.6;
+        }
+
         @media (max-width: 980px) {
             .import-layout { grid-template-columns: 1fr; }
             .import-sidebar { border-right: 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
@@ -340,8 +381,11 @@
                     <button id="mode-elim" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('elimination')">НА ВЫБЫВАНИЕ</button>
                     <button id="mode-normal" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('normal')">ОБЫЧНЫЙ ВЫБОР</button>
                 </div>
-                <div style="text-align: center; margin: 4px 0;">
-                    <label style="font-size: 13px; color: #888;">Время (сек): <input type="number" id="dur-input" min="1" max="60" value="5" style="width:60px; padding:4px; background:#0b1220; border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; border-radius:4px; text-align:center;"></label>
+                <div class="dur-input-wrapper">
+                    <label>
+                        ⏱️ Время (сек):
+                        <input type="number" id="dur-input" min="0.1" max="60" step="0.1" value="5">
+                    </label>
                 </div>
                 <button id="roll-button" class="btn-main btn-purple" style="padding: 18px; font-size: 18px;" onclick="executeSpin()">КРУТИТЬ! 🚀</button>
                 <label style="display:flex; align-items:center; gap:8px; margin-top:6px;"><input id="autoskip-checkbox" type="checkbox"> <span style="font-size:13px; color:#ccc;">Автокрут</span></label>
@@ -356,10 +400,7 @@
             <div class="import-layout">
                 <div class="import-sidebar">
                     <p class="import-example">Example:</p>
-                    <div class="import-code" id="import-example-box">1 vadym
-2 player_two
-3 anotheruser
-4 testnick</div>
+                    <div class="import-code" id="import-example-box">1 vadym\n2 player_two\n3 anotheruser\n4 testnick</div>
                 </div>
                 <div class="import-main">
                     <textarea id="import-textarea" class="import-textarea" placeholder="Or paste text here"></textarea>
@@ -446,6 +487,13 @@
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <script>
+        // ---------- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ДЛЯ УПРАВЛЕНИЯ СПИНОМ ----------
+        let currentAnimationId = null;
+        let spinCanceled = false;
+        let spinTimeoutId = null;
+        let precomputedWheelLabels = []; // { text, font, maxWidth }
+        // ----------------------------------------------------------------
+
         const defaultSites = ["Кб", "СкинБро", "СкинХаус", "Жабка", "Мэджик", "Дино", "Ретух", "BountyStars", "Upgrader"];
         let siteOptions = JSON.parse(localStorage.getItem('bot_site_options') || '[]');
         if (!siteOptions.length) { siteOptions = [...defaultSites]; localStorage.setItem('bot_site_options', JSON.stringify(siteOptions)); }
@@ -642,7 +690,7 @@
                 syncParticipantsState();
             }, (e) => { console.error('Participants subscription error:', e); });
         }
-        function syncParticipantsState() { document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); wheelParticipants = getActiveParticipants(); saveToStorage(); }
+        function syncParticipantsState() { document.getElementById('user-count').innerText = participants.size; updateFullParticipantsList(); wheelParticipants = getActiveParticipants(); precomputeWheelLabels(); saveToStorage(); }
         function getActiveParticipants() { return Array.from(participants); }
         function setCloudStatus(text, color) { try { const el = document.getElementById('cloud-status'); if (!el) return; el.innerText = 'Cloud: ' + text; el.style.color = color; } catch(e){} }
 
@@ -664,7 +712,6 @@
             const title = document.querySelector('.orange-chat h3');
             if (title) title.textContent = currentChannelName ? `TWITCH CHAT ${currentChannelName.toUpperCase()}` : 'TWITCH CHAT';
             document.title = currentChannelName ? `Бот — ${currentChannelName}` : 'Бот для прокачек';
-            // Ник справа сверху — создаём один раз, показываем только когда канал задан
             let display = document.getElementById('user-nick-el');
             if (!display) {
                 display = document.createElement('div');
@@ -754,6 +801,7 @@
             wheelParticipants = Array.isArray(wheelParticipants) ? wheelParticipants : [];
             if (replace) { wheelParticipants = [...parsedNames]; } else { const s = new Set([...wheelParticipants, ...parsedNames]); wheelParticipants = Array.from(s); }
             try { localStorage.setItem('bot_wheel_participants', JSON.stringify(wheelParticipants)); } catch(e){}
+            precomputeWheelLabels();
             document.getElementById('import-textarea').value = '';
             document.getElementById('import-replace-checkbox').checked = false;
             updateImportApplyState();
@@ -842,15 +890,117 @@
             window.winInt = setInterval(() => { if(winTimerActive) { s++; let sec=s%60, min=Math.floor(s/60), hr=Math.floor(min/60); document.getElementById('win-timer-label').innerText=`${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000);
         }
 
-        function resetWheelParticipants() { if(confirm('Сбросить участников рулетки?')) { wheelParticipants=[]; try { localStorage.removeItem('bot_wheel_participants'); } catch(e){} document.getElementById('elim-log').innerText=''; const nl = document.getElementById('arrow-label'); if(nl) nl.style.display='none'; drawWheel(0); } }
+        function resetWheelParticipants() { if(confirm('Сбросить участников рулетки?')) { wheelParticipants=[]; precomputeWheelLabels(); try { localStorage.removeItem('bot_wheel_participants'); } catch(e){} document.getElementById('elim-log').innerText=''; const nl = document.getElementById('arrow-label'); if(nl) nl.style.display='none'; drawWheel(0); } }
 
-        function openWheel() { hideNickDisplay();
-            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) wheelParticipants = getActiveParticipants();
+        // ---------- ОПТИМИЗАЦИЯ ОТРИСОВКИ: предрасчёт меток ----------
+        function precomputeWheelLabels() {
+            const p = wheelParticipants || [];
+            const count = p.length;
+            precomputedWheelLabels = p.map((name, idx) => {
+                let fontSize = Math.max(12, Math.min(28, Math.floor(320 / (count || 1))));
+                let displayName = String(name || '');
+                const ctx = document.createElement('canvas').getContext('2d');
+                if (!ctx) return { text: displayName, font: `bold ${fontSize}px Inter` };
+                ctx.font = `bold ${fontSize}px Inter`;
+                const maxW = 320 * 0.62; // примерная ширина сектора
+                while (ctx.measureText(displayName).width > maxW && displayName.length > 1) {
+                    displayName = displayName.slice(0, -1) + '…';
+                }
+                return { text: displayName, font: `bold ${fontSize}px Inter` };
+            });
+        }
+
+        function drawWheel(angle) {
+            const canvas = document.getElementById('wheelCanvas');
+            const ctx = canvas.getContext('2d');
+            const p = wheelParticipants || [];
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            const r = Math.min(cx, cy) - 10;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (p.length === 0) return;
+            const slice = (Math.PI * 2) / p.length;
+            for (let i = 0; i < p.length; i++) {
+                ctx.beginPath();
+                ctx.fillStyle = wheelColors[i % wheelColors.length];
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, r, angle + i * slice, angle + (i + 1) * slice);
+                ctx.closePath();
+                ctx.fill();
+                // линии
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                ctx.lineWidth = 1.5;
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + r * Math.cos(angle + i * slice), cy + r * Math.sin(angle + i * slice));
+                ctx.stroke();
+                // текст
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle + i * slice + slice / 2);
+                const textMid = r * 0.58;
+                const label = precomputedWheelLabels[i] || { text: p[i] || '', font: 'bold 14px Inter' };
+                ctx.font = label.font;
+                ctx.fillStyle = '#fff';
+                ctx.shadowBlur = 0;          // убираем тень для скорости
+                ctx.textBaseline = 'middle';
+                ctx.textAlign = 'center';
+                ctx.fillText(label.text, textMid, 0);
+                ctx.restore();
+            }
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            updateNickLabel(angle);
+        }
+
+        function updateNickLabel(angle) {
+            const nl = document.getElementById('arrow-label');
+            if (!nl) return;
+            const p = wheelParticipants || [];
+            if (p.length === 0) { nl.style.display = 'none'; return; }
+            const slice = (Math.PI * 2) / p.length;
+            let a = ((-Math.PI / 2) - angle % (Math.PI * 2) + Math.PI * 4) % (Math.PI * 2);
+            const idx = Math.floor(a / slice) % p.length;
+            nl.innerText = p[idx] || '';
+            nl.style.display = 'block';
+        }
+
+        function cancelSpin() {
+            if (currentAnimationId) {
+                cancelAnimationFrame(currentAnimationId);
+                currentAnimationId = null;
+            }
+            if (spinTimeoutId) {
+                clearTimeout(spinTimeoutId);
+                spinTimeoutId = null;
+            }
+            spinCanceled = true;
+            // Сбрасываем флаг автокрута если нужно, чтобы не крутилось дальше
+            autoSpinEnabled = false;
+            const autoCheck = document.getElementById('autoskip-checkbox');
+            if (autoCheck) autoCheck.checked = false;
+        }
+
+        function openWheel() {
+            hideNickDisplay();
+            cancelSpin(); // отменяем предыдущий спин, если был
+            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
+                wheelParticipants = getActiveParticipants();
+                precomputeWheelLabels();
+            }
             document.getElementById('wheel-modal').style.display = 'flex';
-            const autos = document.getElementById('autoskip-checkbox'); if (autos) autos.checked = !!autoSpinEnabled;
+            const autos = document.getElementById('autoskip-checkbox');
+            if (autos) autos.checked = !!autoSpinEnabled;
             document.getElementById('elim-log').innerText = '';
-            const nl = document.getElementById('arrow-label'); if(nl) nl.style.display='none';
-            setSpinMode('elimination');
+            const nl = document.getElementById('arrow-label');
+            if (nl) nl.style.display = 'none';
+            setSpinMode(selectedSpinMode);
             drawWheel(0);
         }
 
@@ -873,97 +1023,34 @@
             selectedSpinMode = m;
             document.getElementById('mode-elim').classList.toggle('is-active-mode', m==='elimination');
             document.getElementById('mode-normal').classList.toggle('is-active-mode', m==='normal');
-            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) wheelParticipants = getActiveParticipants();
+            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
+                wheelParticipants = getActiveParticipants();
+                precomputeWheelLabels();
+            }
             document.getElementById('elim-log').innerText = '';
             drawWheel(0);
         }
 
-        function executeSpin() { if (!wheelParticipants.length) return; document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
-
-        // ===== ОТРИСОВКА КОЛЕСА =====
-        function drawWheel(angle) {
-            const canvas = document.getElementById('wheelCanvas');
-            const ctx = canvas.getContext('2d');
-            const p = wheelParticipants || [];
-            const cx = canvas.width / 2, cy = canvas.height / 2;
-            const r = Math.min(cx, cy) - 10;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (p.length === 0) return;
-            const slice = (Math.PI * 2) / p.length;
-            p.forEach((name, i) => {
-                // Сектор
-                ctx.beginPath();
-                ctx.fillStyle = wheelColors[i % wheelColors.length];
-                ctx.moveTo(cx, cy);
-                ctx.arc(cx, cy, r, angle + i * slice, angle + (i + 1) * slice);
-                ctx.closePath();
-                ctx.fill();
-                // Линии
-                ctx.beginPath();
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-                ctx.lineWidth = 1.5;
-                ctx.moveTo(cx, cy);
-                ctx.lineTo(cx + r * Math.cos(angle + i * slice), cy + r * Math.sin(angle + i * slice));
-                ctx.stroke();
-                // Текст
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(angle + i * slice + slice / 2);
-                // Центр сектора по радиусу (середина между центром и краем)
-                const textMid = r * 0.58;
-                // Шрифт крупнее — минимум 9px, максимум 22px
-                let fontSize = Math.max(12, Math.min(28, Math.floor(320 / p.length)));
-                let displayName = String(name || '');
-                ctx.font = `bold ${fontSize}px Inter`;
-                const maxW = r * 0.62;
-                while (ctx.measureText(displayName).width > maxW && displayName.length > 1) displayName = displayName.slice(0, -1) + '…';
-                ctx.fillStyle = '#fff';
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = 'rgba(0,0,0,0.95)';
-                ctx.textBaseline = 'middle';
-                ctx.textAlign = 'center';
-                ctx.fillText(displayName, textMid, 0);
-                ctx.restore();
-            });
-            // Обводка
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            // Центр
-            ctx.beginPath();
-            ctx.arc(cx, cy, 14, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-
-            // Обновляем ник над стрелкой (только во время анимации — то, на что указывает стрелка)
-            updateNickLabel(angle);
+        function executeSpin() {
+            if (!wheelParticipants.length) return;
+            cancelSpin(); // отменяем текущий спин перед новым
+            document.getElementById('roll-button').disabled = true;
+            startSpin(selectedSpinMode);
         }
 
-        // Показываем ник того на кого указывает стрелка
-        function updateNickLabel(angle) {
-            const nl = document.getElementById('arrow-label');
-            if (!nl) return;
-            const p = wheelParticipants || [];
-            if (p.length === 0) { nl.style.display = 'none'; return; }
-            const slice = (Math.PI * 2) / p.length;
-            // Стрелка смотрит вниз (верх колеса) = угол -π/2 в мировых координатах
-            // Нормализуем угол колеса
-            let a = ((-Math.PI / 2) - angle % (Math.PI * 2) + Math.PI * 4) % (Math.PI * 2);
-            const idx = Math.floor(a / slice) % p.length;
-            nl.innerText = p[idx] || '';
-            nl.style.display = 'block';
-        }
-
-        // ===== СПИН =====
         function startSpin(mode) {
-            const duration = (parseInt(document.getElementById('dur-input').value) || 5) * 1000;
+            const durationSec = parseFloat(document.getElementById('dur-input').value);
+            if (isNaN(durationSec) || durationSec <= 0) {
+                document.getElementById('dur-input').value = '5';
+                durationSec = 5;
+            }
+            const duration = durationSec * 1000;
             const n = wheelParticipants.length;
-            if (n === 0) return;
+            if (n === 0) {
+                document.getElementById('roll-button').disabled = false;
+                return;
+            }
             const sliceAngle = (Math.PI * 2) / n;
-
-            // Выбираем победителя заранее
             let winner, winnerIdx;
             if (mode === 'elimination') {
                 winner = pickRiggedElimination(wheelParticipants);
@@ -973,34 +1060,44 @@
             winnerIdx = wheelParticipants.findIndex(w => w === winner);
             if (winnerIdx === -1) winnerIdx = Math.floor(Math.random() * n);
             winner = wheelParticipants[winnerIdx];
-
-            // Рассчитываем финальный угол так чтобы стрелка (верх = -π/2) указывала на центр нужного сектора
             const fullSpins = Math.PI * 2 * (6 + Math.floor(Math.random() * 4));
             const jitter = (Math.random() - 0.5) * sliceAngle * 0.35;
             const endAngle = -Math.PI / 2 - (winnerIdx * sliceAngle + sliceAngle / 2) - fullSpins + jitter;
-
             let startTimestamp = null;
-
+            spinCanceled = false;
             function animate(ts) {
+                if (spinCanceled) {
+                    if (currentAnimationId) cancelAnimationFrame(currentAnimationId);
+                    currentAnimationId = null;
+                    document.getElementById('roll-button').disabled = false;
+                    return;
+                }
                 if (!startTimestamp) startTimestamp = ts;
                 const progress = Math.min((ts - startTimestamp) / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 4);
                 const currentAngle = (endAngle) * ease;
                 drawWheel(currentAngle);
-                if (progress < 1) { requestAnimationFrame(animate); return; }
-
-                // Останавливаемся
+                if (progress < 1) {
+                    currentAnimationId = requestAnimationFrame(animate);
+                    return;
+                }
                 drawWheel(endAngle);
-                // Показываем ник победителя над стрелкой жирно
+                if (spinCanceled) {
+                    document.getElementById('roll-button').disabled = false;
+                    currentAnimationId = null;
+                    return;
+                }
                 const nl = document.getElementById('arrow-label');
                 if (nl) { nl.innerText = winner; nl.style.display = 'block'; }
-
                 if (mode === 'normal') {
-                    if (autoSpinEnabled && document.getElementById('wheel-modal').style.display === 'flex') {
+                    if (autoSpinEnabled && document.getElementById('wheel-modal').style.display === 'flex' && !spinCanceled) {
                         document.getElementById('elim-log').innerText = '🏆 WIN: ' + winner;
                         playTick();
                         document.getElementById('roll-button').disabled = false;
-                        setTimeout(() => startSpin(selectedSpinMode), 1200);
+                        spinTimeoutId = setTimeout(() => {
+                            if (!spinCanceled) startSpin(selectedSpinMode);
+                            spinTimeoutId = null;
+                        }, 1200);
                     } else {
                         showWinnerRef(winner);
                         document.getElementById('roll-button').disabled = false;
@@ -1009,32 +1106,50 @@
                     document.getElementById('elim-log').innerText = '❌ ВЫБЫЛ: ' + winner;
                     playTick();
                     wheelParticipants.splice(winnerIdx, 1);
+                    precomputeWheelLabels();
                     if (wheelParticipants.length === 0) {
                         document.getElementById('roll-button').disabled = false;
                     } else if (wheelParticipants.length === 1) {
-                        setTimeout(() => { drawWheel(0); showWinnerRef(wheelParticipants[0]); document.getElementById('roll-button').disabled = false; }, 1500);
+                        spinTimeoutId = setTimeout(() => {
+                            if (!spinCanceled) {
+                                drawWheel(0);
+                                showWinnerRef(wheelParticipants[0]);
+                            }
+                            document.getElementById('roll-button').disabled = false;
+                            spinTimeoutId = null;
+                        }, 1500);
                     } else {
-                        setTimeout(() => {
-                            drawWheel(0);
-                            if (autoSpinEnabled) startSpin('elimination');
-                            else document.getElementById('roll-button').disabled = false;
+                        spinTimeoutId = setTimeout(() => {
+                            if (!spinCanceled) {
+                                drawWheel(0);
+                                if (autoSpinEnabled) startSpin('elimination');
+                                else document.getElementById('roll-button').disabled = false;
+                            } else {
+                                document.getElementById('roll-button').disabled = false;
+                            }
+                            spinTimeoutId = null;
                         }, 1000);
                     }
                 }
+                currentAnimationId = null;
             }
-            requestAnimationFrame(animate);
+            currentAnimationId = requestAnimationFrame(animate);
         }
 
         function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); showWinnerRef(pickRiggedWinner(arr)); }
 
         function closeModals() {
+            // Если закрываем рулетку, отменяем спин
+            const wheelModal = document.getElementById('wheel-modal');
+            if (wheelModal && wheelModal.style.display === 'flex') {
+                cancelSpin();
+            }
             document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
             document.getElementById('winner-screen').style.display = 'none';
             winTimerActive = false; clearInterval(window.winInt);
             autoSpinEnabled = false;
             const autos = document.getElementById('autoskip-checkbox'); if (autos) autos.checked = false;
             const nl = document.getElementById('arrow-label'); if (nl) nl.style.display = 'none';
-            // Показываем ник когда вернулись на главный экран
             const nick = document.getElementById('user-nick-el'); if (nick && currentChannelName) nick.style.display = 'block';
         }
         function hideNickDisplay() {
@@ -1109,6 +1224,7 @@
         updateFullParticipantsList();
         updateParticipationHeader();
         try { wheelParticipants = JSON.parse(localStorage.getItem('bot_wheel_participants')||'[]'); } catch(e) { wheelParticipants=[]; }
+        precomputeWheelLabels();
         applyTheme(localStorage.getItem('bot_theme_name') || 'pink');
         updateChannelUi();
         if (currentChannelName) { initTwitchEmbed(); connectTwitchSocket(); }
