@@ -177,7 +177,6 @@
         .auth-form input { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 10px; }
         .auth-note { margin-top: 12px; color: #94a3b8; font-size: 12px; }
         @keyframes textGlow { 0%, 100% { text-shadow: 0 0 10px rgba(255,20,147,0.5); opacity: 0.8; transform: scale(1); } 50% { text-shadow: 0 0 20px rgba(255,20,147,0.8); opacity: 1; transform: scale(1.15); } }
-        /* Ник канала — fixed справа сверху, показывается только после входа */
         .user-nick-display {
             position: fixed;
             top: 14px;
@@ -195,15 +194,12 @@
             box-shadow: inset 0 0 18px rgba(0,0,0,0.28);
             display: none;
         }
-
-        /* ===== СТРЕЛКА И КОЛЕСО — КЛЮЧЕВЫЕ СТИЛИ ===== */
         .wheel-wrapper {
             position: relative;
             display: inline-flex;
             flex-direction: column;
             align-items: center;
         }
-        /* Надпись над стрелкой */
         #arrow-label {
             position: absolute;
             top: -52px;
@@ -225,7 +221,6 @@
             letter-spacing: 1px;
             display: none;
         }
-        /* Стрелка — треугольник острием вниз, по центру над колесом */
         #wheel-arrow {
             position: absolute;
             top: -22px;
@@ -239,7 +234,6 @@
             z-index: 20;
             filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
         }
-
         #dur-input::-webkit-outer-spin-button,
         #dur-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         #dur-input { -moz-appearance: textfield; }
@@ -318,22 +312,15 @@
     <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th></tr></thead><tbody id="history-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
     <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th></tr></thead><tbody id="stats-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
 
-    <!-- РУЛЕТКА — стрелка строго над центром колеса -->
+    <!-- РУЛЕТКА -->
     <div id="wheel-modal" class="modal">
         <div class="modal-content">
             <div class="close-x" onclick="closeModals()">&times;</div>
-
-            <!-- Обёртка колеса: стрелка и ник позиционируются относительно неё -->
             <div class="wheel-wrapper" id="wheel-wrapper">
-                <!-- Ник над стрелкой -->
                 <div id="arrow-label"></div>
-                <!-- Стрелка -->
                 <div id="wheel-arrow"></div>
-                <!-- Колесо -->
                 <canvas id="wheelCanvas" width="700" height="700"></canvas>
             </div>
-
-            <!-- Панель управления -->
             <div style="width: 340px; display: flex; flex-direction: column; gap: 12px;">
                 <h3 style="margin: 0; text-align: center; color: var(--accent-neon-blue); font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">Настройки</h3>
                 <div id="elim-log" style="text-align: center; color: var(--accent-neon-blue); font-weight: bold; min-height: 28px; font-size: 15px; background: rgba(255,20,147,0.1); border: 1px solid var(--accent-neon-blue); border-radius: 8px; padding: 8px;"></div>
@@ -360,10 +347,7 @@
             <div class="import-layout">
                 <div class="import-sidebar">
                     <p class="import-example">Example:</p>
-                    <div class="import-code" id="import-example-box">1 vadym
-2 player_two
-3 anotheruser
-4 testnick</div>
+                    <div class="import-code" id="import-example-box">1 vadym\n2 player_two\n3 anotheruser\n4 testnick</div>
                 </div>
                 <div class="import-main">
                     <textarea id="import-textarea" class="import-textarea" placeholder="Or paste text here"></textarea>
@@ -450,6 +434,9 @@
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
     <script>
+        // Константа для ограничения количества участников в рулетке (оптимизация)
+        const MAX_WHEEL_PARTICIPANTS = 200;
+        
         const defaultSites = ["Кб", "СкинБро", "СкинХаус", "Жабка", "Мэджик", "Дино", "Ретух", "BountyStars", "Upgrader"];
         let siteOptions = JSON.parse(localStorage.getItem('bot_site_options') || '[]');
         if (!siteOptions.length) { siteOptions = [...defaultSites]; localStorage.setItem('bot_site_options', JSON.stringify(siteOptions)); }
@@ -668,7 +655,6 @@
             const title = document.querySelector('.orange-chat h3');
             if (title) title.textContent = currentChannelName ? `TWITCH CHAT ${currentChannelName.toUpperCase()}` : 'TWITCH CHAT';
             document.title = currentChannelName ? `Бот — ${currentChannelName}` : 'Бот для прокачек';
-            // Ник справа сверху — создаём один раз, показываем только когда канал задан
             let display = document.getElementById('user-nick-el');
             if (!display) {
                 display = document.createElement('div');
@@ -748,114 +734,103 @@
         function openImportParticipants() { document.getElementById('import-participants-modal').style.display = 'flex'; updateImportApplyState(); }
         function setImportFormat(format) { selectedImportFormat = format; }
         function updateImportApplyState() { const btn = document.getElementById('import-apply-button'); const ta = document.getElementById('import-textarea'); btn.classList.toggle('is-ready', !!(ta && ta.value.trim().length > 0)); }
+        
+        // ИСПРАВЛЕННАЯ ФУНКЦИЯ ПРИМЕНЕНИЯ УЧАСТНИКОВ
         async function applyImportedParticipants() {
             const raw = document.getElementById('import-textarea').value;
-            if (!raw.trim()) return;
+            if (!raw.trim()) {
+                alert('Нет данных для импорта');
+                return;
+            }
+            
             let parsedNames = [];
-            try { parsedNames = parseImportedParticipants(raw); } catch(e) { alert('Ошибка: '+e.message); return; }
-            if (!parsedNames.length) { alert('Участников не найдено.'); return; }
+            try {
+                parsedNames = parseImportedParticipants(raw);
+            } catch(e) {
+                alert('Ошибка разбора списка: ' + e.message);
+                return;
+            }
+            
+            if (!parsedNames.length) {
+                alert('Не найдено ни одного имени участника. Проверьте формат (каждое имя с новой строки).');
+                return;
+            }
+            
             const replace = document.getElementById('import-replace-checkbox').checked;
-            wheelParticipants = Array.isArray(wheelParticipants) ? wheelParticipants : [];
-            if (replace) { wheelParticipants = [...parsedNames]; } else { const s = new Set([...wheelParticipants, ...parsedNames]); wheelParticipants = Array.from(s); }
-            try { localStorage.setItem('bot_wheel_participants', JSON.stringify(wheelParticipants)); } catch(e){}
+            
+            // Обновляем wheelParticipants
+            if (replace) {
+                wheelParticipants = [...parsedNames];
+            } else {
+                const existingSet = new Set(wheelParticipants);
+                parsedNames.forEach(name => existingSet.add(name));
+                wheelParticipants = Array.from(existingSet);
+            }
+            
+            // Сохраняем в localStorage для сохранения между сессиями
+            try {
+                localStorage.setItem('bot_wheel_participants', JSON.stringify(wheelParticipants));
+            } catch(e) { console.warn('localStorage save error', e); }
+            
+            // Очищаем текстовое поле и чекбокс
             document.getElementById('import-textarea').value = '';
             document.getElementById('import-replace-checkbox').checked = false;
             updateImportApplyState();
+            
+            // Закрываем модалку импорта
             document.getElementById('import-participants-modal').style.display = 'none';
-            openWheel();
-            alert(`Добавлено в рулетку: ${parsedNames.length}`);
-        }
-        setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
-
-        function saveWinnerStats() {
-            const amt = parseFloat(document.getElementById('win-amount-input').value)||0;
-            const dep = parseFloat(document.getElementById('win-deposit-input').value)||0;
-            const tg = document.getElementById('win-tg-input').value.trim();
-            const siteEl = document.getElementById('win-site-select');
-            const site = (siteEl && siteEl.value) || '---';
-            if (tg) { saveParticipantTelegram(currentWinner, tg); syncParticipantTelegramToCloud(currentWinner, tg); }
-            if(amt > 0 || dep > 0) {
-                let existing = leaders.find(l => l.name.toLowerCase() === currentWinner.toLowerCase());
-                if(existing) { existing.amount += amt; existing.deposits = (existing.deposits||0)+dep; if(tg) existing.tg=tg; if(site!=='---') existing.site=site; }
-                else leaders.push({name: currentWinner, amount: amt, deposits: dep, tg: tg, site: site});
+            
+            // Открываем рулетку с обновлёнными участниками
+            // Очищаем кеш колеса, чтобы перерисовалось
+            _wheelCache = null;
+            _wheelCacheKey = '';
+            
+            // Проверяем количество участников перед открытием
+            if (wheelParticipants.length > MAX_WHEEL_PARTICIPANTS) {
+                alert(`⚠️ Слишком много участников (${wheelParticipants.length}). Рулетка не откроется. Используйте «Быстрый ролл» или сократите список (макс. ${MAX_WHEEL_PARTICIPANTS}).`);
+                return;
             }
-            globalHistory.push({ name: currentWinner, amount: amt, deposit: dep, site: site, tg: tg||'---', rerolls: rerollCount, date: new Date().toLocaleDateString()+' '+new Date().toLocaleTimeString() });
-            rerollCount = 0;
-            renderLeaderboard();
-            closeModals();
-            cloudSaveAppStateDebounced();
+            
+            openWheel();
+            alert(`Участники успешно ${replace ? 'заменены' : 'добавлены'}: ${parsedNames.length} чел.`);
         }
-
-        function openStats() { hideNickDisplay();
-            const stats = {};
-            globalHistory.forEach(h => { const s = h.site||'---'; if(!stats[s]) stats[s]={count:0,sum:0,deps:0}; stats[s].count++; stats[s].sum+=(h.amount||0); stats[s].deps+=(h.deposit||0); });
-            const body = document.getElementById('stats-body'); body.innerHTML = '';
-            Object.keys(stats).sort().forEach(site => { body.innerHTML += `<tr><td><b>${site}</b></td><td>${stats[site].count}</td><td>${stats[site].sum.toLocaleString()} ₽</td><td>${stats[site].deps.toLocaleString()} ₽</td><td><button style="color:var(--accent-neon-blue);background:none;border:none;cursor:pointer;" onclick="editProjectName('${site}')">✏️</button><button style="color:red;background:none;border:none;cursor:pointer;" onclick="deleteProjectRecords('${site}')">🗑️</button></td></tr>`; });
-            document.getElementById('stats-modal').style.display = 'flex';
-        }
-        function editProjectName(oldName) { let newName = prompt('Новое название проекта:', oldName); if (newName && newName !== oldName) { globalHistory.forEach(h => { if(h.site===oldName) h.site=newName; }); leaders.forEach(l => { if(l.site===oldName) l.site=newName; }); saveToStorage(); cloudSaveAppStateDebounced(); openStats(); renderLeaderboard(); } }
-        function deleteProjectRecords(siteName) { if(confirm(`Удалить ВСЕ записи по "${siteName}"?`)) { globalHistory = globalHistory.filter(h => h.site!==siteName); leaders = leaders.filter(l => globalHistory.some(h => h.name.toLowerCase()===l.name.toLowerCase())); saveToStorage(); cloudSaveAppStateDebounced(); openStats(); renderLeaderboard(); } }
-
-        function openHistory() { hideNickDisplay();
-            const body = document.getElementById('history-body'); body.innerHTML = '';
-            [...globalHistory].reverse().forEach((h, index) => {
-                const realIndex = globalHistory.length - 1 - index;
-                if (h.isReroll) {
-                    body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b;font-weight:bold;">🔄 ${h.name}</td><td style="color:#aaa;">${h.tg||'---'}</td><td style="color:#f59e0b;font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls||0}</td><td style="text-align:center;"><button style="background:none;border:none;color:red;cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
-                } else {
-                    body.innerHTML += `<tr><td><small>${h.date}</small></td><td style="color:var(--accent-neon-blue);font-weight:bold;">${h.name}</td><td style="color:#aaa;">${h.tg||'---'}</td><td>${h.site}</td><td style="color:var(--accent-neon-blue);font-weight:bold;">${(h.amount||0).toLocaleString()} ₽</td><td style="color:white;font-weight:bold;">${(h.deposit||0).toLocaleString()} ₽</td><td style="text-align:center;">${h.rerolls||0}</td><td style="text-align:center;"><button style="background:none;border:none;color:var(--accent-neon-blue);cursor:pointer;" onclick="editHistoryItem(${realIndex})">✏️</button><button style="background:none;border:none;color:red;cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
-                }
-            });
-            document.getElementById('history-modal').style.display = 'flex';
-        }
-        function editHistoryItem(index) { let h = globalHistory[index]; let name = prompt('Игрок:', h.name); let tg = prompt('Telegram:', h.tg||''); let site = prompt('Проект:', h.site); let amount = prompt('Вывод (₽):', h.amount); let deposit = prompt('Депозит (₽):', h.deposit); let date = prompt('Дата:', h.date); if (name !== null) { h.name=name; h.tg=tg; h.site=site; h.amount=parseFloat(amount)||0; h.deposit=parseFloat(deposit)||0; h.date=date; saveParticipantTelegram(h.name,tg); syncParticipantTelegramToCloud(h.name,tg); saveToStorage(); cloudSaveAppStateDebounced(); openHistory(); renderLeaderboard(); } }
-        function deleteHistoryItem(index) { if(confirm('Удалить запись?')) { const d = globalHistory[index]; globalHistory.splice(index,1); if(!globalHistory.some(h => h.name.toLowerCase()===d.name.toLowerCase())) leaders=leaders.filter(l => l.name.toLowerCase()!==d.name.toLowerCase()); saveToStorage(); cloudSaveAppStateDebounced(); openHistory(); renderLeaderboard(); } }
-        function editWinnerCounter(type) { if(!currentWinner) return; let val = prompt('Новое значение:'); if(val !== null) { if(type==='count') document.getElementById('win-count-stat').innerText=val; if(type==='sum') document.getElementById('win-sum-stat').innerText=parseInt(val).toLocaleString()+' ₽'; if(type==='dep') document.getElementById('win-dep-stat').innerText=parseInt(val).toLocaleString()+' ₽'; } }
-
-        function showWinnerRef(name) { hideNickDisplay();
-            closeModals();
-            currentWinner = name; winTimerActive = true;
-            const winNick = document.getElementById('win-nick');
-            const timerLabel = document.getElementById('win-timer-label');
-            const statusLabel = document.getElementById('win-status-label');
-            winNick.classList.remove('winner-responded'); timerLabel.classList.remove('timer-responded'); statusLabel.classList.remove('winner-responded');
-            statusLabel.style.color = 'var(--accent-neon-blue)'; statusLabel.innerText = 'WINNER FOUND';
-            winNick.innerText = name;
-            document.getElementById('reroll-counter-display').innerText = 'Рероллов: ' + rerollCount;
-            const userHistory = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase() && !h.isReroll);
-            const globalRerolls = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase() && h.isReroll).length;
-            const totalWon = userHistory.reduce((s,h) => s+(h.amount||0), 0);
-            const totalDep = userHistory.reduce((s,h) => s+(h.deposit||0), 0);
-            const savedTg = getSavedTelegram(name) || userHistory.find(h => h.tg&&h.tg!=='---')?.tg || leaders.find(l => l.name.toLowerCase()===name.toLowerCase())?.tg || '';
-            document.getElementById('win-count-stat').innerText = userHistory.length;
-            document.getElementById('win-sum-stat').innerText = totalWon.toLocaleString()+' ₽';
-            document.getElementById('win-dep-stat').innerText = totalDep.toLocaleString()+' ₽';
-            if (globalRerolls > 0) document.getElementById('reroll-counter-display').innerText += ` | Global реролов: ${globalRerolls}`;
-            const allHistory = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase());
-            document.getElementById('win-drop-history').innerHTML = allHistory.map(h => {
-                if (h.isReroll) return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding:5px 0;font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — РЕРОЛ</span></div>`;
-                return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding:5px 0;font-size:12px;"><span>${h.date.split(' ')[0]} - ${h.site}</span><div><b style="color:var(--accent-neon-blue)">${h.amount>0?'+'+h.amount+' ₽':''}</b><b style="color:white;margin-left:5px;">${h.deposit>0?'(-'+h.deposit+' ₽)':''}</b></div></div>`;
-            }).reverse().join('') || '<div style="color:#555;text-align:center;margin-top:20px;">Первая победа!</div>';
-            document.getElementById('win-amount-input').value = '';
-            document.getElementById('win-deposit-input').value = '';
-            document.getElementById('win-tg-input').value = savedTg;
-            const ws = document.getElementById('win-site-select'); if (ws) ws.value = '---';
-            document.getElementById('winner-screen').style.display = 'flex';
-            document.getElementById('win-chat-history').innerHTML = (userMessages[name]||[]).map(m => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
-            let s = 0; clearInterval(window.winInt);
-            window.winInt = setInterval(() => { if(winTimerActive) { s++; let sec=s%60, min=Math.floor(s/60), hr=Math.floor(min/60); document.getElementById('win-timer-label').innerText=`${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000);
-        }
-
-        function resetWheelParticipants() { if(confirm('Сбросить участников рулетки?')) { wheelParticipants=[]; try { localStorage.removeItem('bot_wheel_participants'); } catch(e){} document.getElementById('elim-log').innerText=''; const nl = document.getElementById('arrow-label'); if(nl) nl.style.display='none'; drawWheel(0); } }
-
-        function openWheel() { hideNickDisplay();
-            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) wheelParticipants = getActiveParticipants();
+        
+        // Обновлённая openWheel с проверкой лимита
+        function openWheel() {
+            hideNickDisplay();
+            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
+                wheelParticipants = getActiveParticipants();
+            }
+            
+            // Проверка на слишком большое количество участников
+            if (wheelParticipants.length > MAX_WHEEL_PARTICIPANTS) {
+                alert(`⚠️ Слишком много участников (${wheelParticipants.length}). 
+Для отображения рулетки допустимо не более ${MAX_WHEEL_PARTICIPANTS}. 
+Используйте «Быстрый ролл» или сократите список.`);
+                closeModals(); // закрываем модалку, чтобы не висло
+                return;
+            }
+            
             document.getElementById('wheel-modal').style.display = 'flex';
-            const autos = document.getElementById('autoskip-checkbox'); if (autos) autos.checked = !!autoSpinEnabled;
+            const autos = document.getElementById('autoskip-checkbox'); 
+            if (autos) autos.checked = !!autoSpinEnabled;
             document.getElementById('elim-log').innerText = '';
-            const nl = document.getElementById('arrow-label'); if(nl) nl.style.display='none';
-            setSpinMode('elimination');
+            const nl = document.getElementById('arrow-label'); 
+            if(nl) nl.style.display = 'none';
+            setSpinMode(selectedSpinMode);
             drawWheel(0);
+        }
+
+        function resetWheelParticipants() { 
+            if(confirm('Сбросить участников рулетки?')) { 
+                wheelParticipants = []; 
+                try { localStorage.removeItem('bot_wheel_participants'); } catch(e){} 
+                document.getElementById('elim-log').innerText = ''; 
+                const nl = document.getElementById('arrow-label'); 
+                if(nl) nl.style.display = 'none'; 
+                drawWheel(0); 
+                alert('Список участников рулетки очищен. Теперь рулетка будет использовать основной список участников.');
+            } 
         }
 
         function reSpinToHome() {
@@ -882,10 +857,9 @@
             drawWheel(0);
         }
 
-        function executeSpin() { if (!wheelParticipants.length) return; document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
+        function executeSpin() { if (!wheelParticipants.length) { alert('Нет участников для рулетки!'); return; } document.getElementById('roll-button').disabled = true; startSpin(selectedSpinMode); }
 
         // ===== ОТРИСОВКА КОЛЕСА =====
-        // Offscreen canvas cache — перерисовываем только при смене состава
         let _wheelCache = null;
         let _wheelCacheKey = '';
         let spinCancelled = false;
@@ -937,13 +911,24 @@
 
         function drawWheel(angle) {
             const canvas = document.getElementById('wheelCanvas');
+            if (!canvas) return;
             const ctx = canvas.getContext('2d');
             const cx = canvas.width/2, cy = canvas.height/2;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const p = wheelParticipants||[];
-            if (!p.length) { updateNickLabel(angle); return; }
+            if (!p.length) { 
+                ctx.font = 'bold 20px Inter';
+                ctx.fillStyle = '#aaa';
+                ctx.textAlign = 'center';
+                ctx.fillText('Нет участников', cx, cy);
+                updateNickLabel(angle); 
+                return; 
+            }
             const ck = getWheelCacheKey();
-            if (!_wheelCache || _wheelCacheKey !== ck) { _wheelCache = buildWheelCache(); _wheelCacheKey = ck; }
+            if (!_wheelCache || _wheelCacheKey !== ck) { 
+                _wheelCache = buildWheelCache(); 
+                _wheelCacheKey = ck; 
+            }
             if (_wheelCache) {
                 ctx.save();
                 ctx.translate(cx, cy);
@@ -955,7 +940,6 @@
             updateNickLabel(angle);
         }
 
-        // Показываем ник того на кого указывает стрелка
         function updateNickLabel(angle) {
             const nl = document.getElementById('arrow-label');
             if (!nl) return;
@@ -968,7 +952,6 @@
             nl.style.display = 'block';
         }
 
-        // ===== СПИН =====
         function startSpin(mode) {
             const rawVal = parseFloat(document.getElementById('dur-input').value) || 5;
             const duration = Math.max(0.1, rawVal) * 1000;
@@ -1034,18 +1017,16 @@
             requestAnimationFrame(animate);
         }
 
-
         function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); showWinnerRef(pickRiggedWinner(arr)); }
 
         function closeModals() {
-            spinCancelled = true; // останавливаем рулетку если крутится
+            spinCancelled = true;
             document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
             document.getElementById('winner-screen').style.display = 'none';
             winTimerActive = false; clearInterval(window.winInt);
             autoSpinEnabled = false;
             const autos = document.getElementById('autoskip-checkbox'); if (autos) autos.checked = false;
             const nl = document.getElementById('arrow-label'); if (nl) nl.style.display = 'none';
-            // Показываем ник когда вернулись на главный экран
             const nick = document.getElementById('user-nick-el'); if (nick && currentChannelName) nick.style.display = 'block';
         }
         function hideNickDisplay() {
@@ -1106,6 +1087,66 @@
             ['manual-name','manual-tg','manual-amount','manual-deposit','manual-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
             const ms=document.getElementById('manual-site-select');if(ms)ms.value='---';
             alert('Запись добавлена');
+        }
+
+        function openStats() { hideNickDisplay();
+            const stats = {};
+            globalHistory.forEach(h => { const s = h.site||'---'; if(!stats[s]) stats[s]={count:0,sum:0,deps:0}; stats[s].count++; stats[s].sum+=(h.amount||0); stats[s].deps+=(h.deposit||0); });
+            const body = document.getElementById('stats-body'); body.innerHTML = '';
+            Object.keys(stats).sort().forEach(site => { body.innerHTML += `<tr><td><b>${site}</b></td><td>${stats[site].count}</td><td>${stats[site].sum.toLocaleString()} ₽</td><td>${stats[site].deps.toLocaleString()} ₽</td><td><button style="color:var(--accent-neon-blue);background:none;border:none;cursor:pointer;" onclick="editProjectName('${site}')">✏️</button><button style="color:red;background:none;border:none;cursor:pointer;" onclick="deleteProjectRecords('${site}')">🗑️</button></td></tr>`; });
+            document.getElementById('stats-modal').style.display = 'flex';
+        }
+        function editProjectName(oldName) { let newName = prompt('Новое название проекта:', oldName); if (newName && newName !== oldName) { globalHistory.forEach(h => { if(h.site===oldName) h.site=newName; }); leaders.forEach(l => { if(l.site===oldName) l.site=newName; }); saveToStorage(); cloudSaveAppStateDebounced(); openStats(); renderLeaderboard(); } }
+        function deleteProjectRecords(siteName) { if(confirm(`Удалить ВСЕ записи по "${siteName}"?`)) { globalHistory = globalHistory.filter(h => h.site!==siteName); leaders = leaders.filter(l => globalHistory.some(h => h.name.toLowerCase()===l.name.toLowerCase())); saveToStorage(); cloudSaveAppStateDebounced(); openStats(); renderLeaderboard(); } }
+
+        function openHistory() { hideNickDisplay();
+            const body = document.getElementById('history-body'); body.innerHTML = '';
+            [...globalHistory].reverse().forEach((h, index) => {
+                const realIndex = globalHistory.length - 1 - index;
+                if (h.isReroll) {
+                    body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b;font-weight:bold;">🔄 ${h.name}</td><td style="color:#aaa;">${h.tg||'---'}</td><td style="color:#f59e0b;font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls||0}</td><td style="text-align:center;"><button style="background:none;border:none;color:red;cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
+                } else {
+                    body.innerHTML += `<tr><td><small>${h.date}</small></td><td style="color:var(--accent-neon-blue);font-weight:bold;">${h.name}</td><td style="color:#aaa;">${h.tg||'---'}</td><td>${h.site}</td><td style="color:var(--accent-neon-blue);font-weight:bold;">${(h.amount||0).toLocaleString()} ₽</td><td style="color:white;font-weight:bold;">${(h.deposit||0).toLocaleString()} ₽</td><td style="text-align:center;">${h.rerolls||0}</td><td style="text-align:center;"><button style="background:none;border:none;color:var(--accent-neon-blue);cursor:pointer;" onclick="editHistoryItem(${realIndex})">✏️</button><button style="background:none;border:none;color:red;cursor:pointer;" onclick="deleteHistoryItem(${realIndex})">🗑️</button></td></tr>`;
+                }
+            });
+            document.getElementById('history-modal').style.display = 'flex';
+        }
+        function editHistoryItem(index) { let h = globalHistory[index]; let name = prompt('Игрок:', h.name); let tg = prompt('Telegram:', h.tg||''); let site = prompt('Проект:', h.site); let amount = prompt('Вывод (₽):', h.amount); let deposit = prompt('Депозит (₽):', h.deposit); let date = prompt('Дата:', h.date); if (name !== null) { h.name=name; h.tg=tg; h.site=site; h.amount=parseFloat(amount)||0; h.deposit=parseFloat(deposit)||0; h.date=date; saveParticipantTelegram(h.name,tg); syncParticipantTelegramToCloud(h.name,tg); saveToStorage(); cloudSaveAppStateDebounced(); openHistory(); renderLeaderboard(); } }
+        function deleteHistoryItem(index) { if(confirm('Удалить запись?')) { const d = globalHistory[index]; globalHistory.splice(index,1); if(!globalHistory.some(h => h.name.toLowerCase()===d.name.toLowerCase())) leaders=leaders.filter(l => l.name.toLowerCase()!==d.name.toLowerCase()); saveToStorage(); cloudSaveAppStateDebounced(); openHistory(); renderLeaderboard(); } }
+        function editWinnerCounter(type) { if(!currentWinner) return; let val = prompt('Новое значение:'); if(val !== null) { if(type==='count') document.getElementById('win-count-stat').innerText=val; if(type==='sum') document.getElementById('win-sum-stat').innerText=parseInt(val).toLocaleString()+' ₽'; if(type==='dep') document.getElementById('win-dep-stat').innerText=parseInt(val).toLocaleString()+' ₽'; } }
+
+        function showWinnerRef(name) { hideNickDisplay();
+            closeModals();
+            currentWinner = name; winTimerActive = true;
+            const winNick = document.getElementById('win-nick');
+            const timerLabel = document.getElementById('win-timer-label');
+            const statusLabel = document.getElementById('win-status-label');
+            winNick.classList.remove('winner-responded'); timerLabel.classList.remove('timer-responded'); statusLabel.classList.remove('winner-responded');
+            statusLabel.style.color = 'var(--accent-neon-blue)'; statusLabel.innerText = 'WINNER FOUND';
+            winNick.innerText = name;
+            document.getElementById('reroll-counter-display').innerText = 'Рероллов: ' + rerollCount;
+            const userHistory = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase() && !h.isReroll);
+            const globalRerolls = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase() && h.isReroll).length;
+            const totalWon = userHistory.reduce((s,h) => s+(h.amount||0), 0);
+            const totalDep = userHistory.reduce((s,h) => s+(h.deposit||0), 0);
+            const savedTg = getSavedTelegram(name) || userHistory.find(h => h.tg&&h.tg!=='---')?.tg || leaders.find(l => l.name.toLowerCase()===name.toLowerCase())?.tg || '';
+            document.getElementById('win-count-stat').innerText = userHistory.length;
+            document.getElementById('win-sum-stat').innerText = totalWon.toLocaleString()+' ₽';
+            document.getElementById('win-dep-stat').innerText = totalDep.toLocaleString()+' ₽';
+            if (globalRerolls > 0) document.getElementById('reroll-counter-display').innerText += ` | Global реролов: ${globalRerolls}`;
+            const allHistory = globalHistory.filter(h => h.name.toLowerCase()===name.toLowerCase());
+            document.getElementById('win-drop-history').innerHTML = allHistory.map(h => {
+                if (h.isReroll) return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding:5px 0;font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — РЕРОЛ</span></div>`;
+                return `<div style="display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.05);padding:5px 0;font-size:12px;"><span>${h.date.split(' ')[0]} - ${h.site}</span><div><b style="color:var(--accent-neon-blue)">${h.amount>0?'+'+h.amount+' ₽':''}</b><b style="color:white;margin-left:5px;">${h.deposit>0?'(-'+h.deposit+' ₽)':''}</b></div></div>`;
+            }).reverse().join('') || '<div style="color:#555;text-align:center;margin-top:20px;">Первая победа!</div>';
+            document.getElementById('win-amount-input').value = '';
+            document.getElementById('win-deposit-input').value = '';
+            document.getElementById('win-tg-input').value = savedTg;
+            const ws = document.getElementById('win-site-select'); if (ws) ws.value = '---';
+            document.getElementById('winner-screen').style.display = 'flex';
+            document.getElementById('win-chat-history').innerHTML = (userMessages[name]||[]).map(m => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
+            let s = 0; clearInterval(window.winInt);
+            window.winInt = setInterval(() => { if(winTimerActive) { s++; let sec=s%60, min=Math.floor(s/60), hr=Math.floor(min/60); document.getElementById('win-timer-label').innerText=`${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000);
         }
 
         document.getElementById('import-textarea').addEventListener('input', updateImportApplyState);
