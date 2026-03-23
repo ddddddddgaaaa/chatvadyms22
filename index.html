@@ -144,8 +144,18 @@
 .red-participants { flex: 1; border: 3px solid var(--section-accent); border-radius: 18px; background: var(--dark-purple); display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .middle-split { display: flex; flex-direction: row; gap: 15px; }
 .red-participants h4 { margin: 0; padding: 12px 15px; background: var(--section-accent-panel); color: var(--soft-light); font-weight: 700; font-size: 13px; letter-spacing: 1px; border-bottom: 1px solid var(--section-accent-border); }
-#full-participants-list { flex: 1; overflow-y: auto; max-height: 100%; padding: 12px; font-size: 14.5px; line-height: 1.65; color: #e0e7ff; }
-#full-participants-list div { padding: 5px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+/* ===== ИЗМЕНЕНИЕ ДЛЯ ВЕРТИКАЛЬНОЙ ПРОКРУТКИ ===== */
+#full-participants-list {
+    flex: 1;
+    overflow-y: auto;        /* автоматический скролл при переполнении */
+    max-height: 100%;
+    padding: 12px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #e0e7ff;
+    min-height: 0;           /* критически важно для корректной работы flex-прокрутки */
+}
+/* ===== КОНЕЦ ИЗМЕНЕНИЙ ===== */
 .participant-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .participant-row.is-inactive { opacity: 0.45; }
 .participant-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
@@ -309,8 +319,8 @@
         </div>
     </div>
 
-    <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th></tr></thead><tbody id="history-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
-    <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th></tr></thead><tbody id="stats-body"></tbody></table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
+    <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th> </tr></thead><tbody id="history-body"></tbody> </table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
+    <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead> <tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th> </tr></thead><tbody id="stats-body"></tbody> </table></div><div class="watermark">(TG - vadymtm90)</div></div></div>
 
     <!-- РУЛЕТКА -->
     <div id="wheel-modal" class="modal">
