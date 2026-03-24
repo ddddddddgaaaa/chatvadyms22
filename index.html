@@ -4,6 +4,39 @@
     <meta charset="UTF-8">
     <title>Бот для прокачек от vadyms22</title>
     <style>
+        function closeModals() {
+    document.body.style.overflow = '';         // добавляем эту строку
+    document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+    // ... остальной код ...
+}
+        #wheel-modal {
+    background: rgba(0, 0, 0, 0.95);
+}
+#wheel-modal .modal-content {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 20px;
+    background: var(--dark-purple);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+}
+#wheelCanvas {
+    width: auto;
+    height: auto;
+    max-width: 70vw;
+    max-height: 80vh;
+}
+#wheel-modal .wheel-controls {
+    width: 320px;
+    margin: 0;
+}
         :root {
             --bg-color: #020205;
             --panel-bg: rgba(15, 23, 42, 0.92);
@@ -1833,6 +1866,12 @@
             openWheel();
             alert(`Добавлено в рулетку: ${parsedNames.length}`);
         }
+        function openWheel() {
+    // ... существующий код ...
+    document.body.style.overflow = 'hidden';   // добавляем эту строку
+    document.getElementById('wheel-modal').style.display = 'flex';
+    // ... остальной код ...
+}
         function pasteParticipants() { openImportParticipants(); }
         setInterval(() => { if (timerRunning && timerSeconds > 0) { timerSeconds--; updateTimerDisplay(); if(timerSeconds === 0) playAlarm(); } }, 1000);
         function saveWinnerStats() { 
