@@ -732,17 +732,25 @@
             }
         }
         .animated-header {
-            font-size: 12px;
+            font-size: 14px;
             color: var(--accent-neon-blue);
-            font-weight: 700;
-            letter-spacing: 1px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
             text-align: center;
-            padding: 8px 0;
-            animation: textGlow 2.5s ease-in-out infinite;
-            margin-bottom: 8px;
-            display: inline-block;
+            padding: 12px 20px;
+            margin-bottom: 12px;
+            display: block;
             width: 100%;
+            background: linear-gradient(135deg, rgba(255,20,147,0.15), rgba(99,102,241,0.15));
+            border: 1px solid var(--accent-neon-blue);
+            border-radius: 12px;
+            animation: textGlow 2s ease-in-out infinite, pulseScale 1.5s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255,20,147,0.3), inset 0 0 15px rgba(255,20,147,0.1);
+        }
+        @keyframes pulseScale {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
         }
         .user-nick-display {
             position: fixed;
@@ -800,7 +808,7 @@
             </div>
             <div style="flex: 1;"></div>
             <button class="btn-main" onclick="resetAll()">Сброс участников</button>
-            <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">22</span></button>
+            <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">+</span></button>
             <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
             <button class="btn-main btn-purple" onclick="instantRoll()">БЫСТРЫЙ РОЛЛ</button>
             <button class="btn-main" onclick="openStats()">АНАЛИТИКА ПРОЕКТОВ</button>
@@ -813,6 +821,7 @@
             <div class="watermark">(TG - vadymtm90)</div>
         </div>
         <div class="panel" style="padding: 15px;">
+            <div class="animated-header" id="participation-header">ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ!</div>
             <div class="middle-split">
                 <div class="red-participants">
                     <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
@@ -940,7 +949,7 @@
         let currentWinner = null, selectedSpinMode = 'normal';
         let rerollCount = 0;
         let currentRotation = 0;
-        let currentCodeword = "22";
+        let currentCodeword = "+";
         let selectedImportFormat = 'csv';
         let autoSpinEnabled = false;
         let wheelParticipants = [];
