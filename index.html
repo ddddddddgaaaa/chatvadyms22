@@ -1590,7 +1590,12 @@
         function syncParticipantsState() {
             document.getElementById('user-count').innerText = participants.size;
             updateFullParticipantsList();
-            wheelParticipants = getActiveParticipants();
+            // Если рулетка открыта — НЕ обновляем wheelParticipants
+            const wheelModal = document.getElementById('wheel-modal');
+            const isWheelOpen = wheelModal && wheelModal.style.display === 'flex';
+            if (!isWheelOpen) {
+                wheelParticipants = getActiveParticipants();
+            }
             saveToStorage();
         }
 
@@ -1630,8 +1635,8 @@
                 title.textContent = currentChannelName ? `TWITCH CHAT ${currentChannelName.toUpperCase()}` : 'TWITCH CHAT';
             }
             document.title = currentChannelName
-                ? `Бот для прокачек от 0savelka0 - ${currentChannelName}`
-                : 'Бот для прокачек от 0savelka0 - BLUE NEON';
+                ? `Бот для прокачек от vadyms22 - ${currentChannelName}`
+                : 'Бот для прокачек от vadyms22 - BLUE NEON';
             updateUserNickDisplay();
         }
         function updateUserNickDisplay() {
@@ -2024,10 +2029,8 @@
             }
         }
         function openWheel() {
-            // Если в рулетке уже есть импортированные участники, не перезаписываем их
-            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
-                wheelParticipants = getActiveParticipants();
-            }
+            // При открытии рулетки обновляем список из участников чата
+            wheelParticipants = getActiveParticipants();
             document.getElementById('wheel-modal').style.display = 'flex';
             // синхронизируем чекбокс автокрута
             const autos = document.getElementById('autoskip-checkbox');
