@@ -779,6 +779,83 @@
                 border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             }
         }
+        /* SOUND SELECTOR STYLES */
+        .sound-selector-btn {
+            background: var(--accent-soft-bg) !important;
+            border-color: var(--accent-neon-blue) !important;
+            color: var(--accent-neon-blue) !important;
+            padding: 8px !important;
+            margin-bottom: 0 !important;
+            font-size: 16px !important;
+            min-width: 40px !important;
+            cursor: pointer !important;
+            transition: 0.3s !important;
+        }
+        .sound-selector-btn:hover {
+            background: var(--accent-hover-bg) !important;
+            transform: scale(1.1) !important;
+        }
+        .sound-popup {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 20, 0.98);
+            border: 1px solid var(--accent-neon-blue);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            min-width: 280px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            z-index: 10002;
+            display: none;
+        }
+        .sound-popup.show {
+            display: block;
+            animation: fadeInUp 0.2s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .sound-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: 0.2s;
+        }
+        .sound-option:hover {
+            background: rgba(255,20,147,0.1);
+            border-color: rgba(255,20,147,0.3);
+        }
+        .sound-option:last-child {
+            margin-bottom: 0;
+        }
+        .sound-name {
+            color: #e2e8f0;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .sound-play-btn {
+            background: rgba(34,197,94,0.2);
+            border: 1px solid rgba(34,197,94,0.4);
+            border-radius: 6px;
+            color: #22c55e;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sound-play-btn:hover {
+            background: rgba(34,197,94,0.4);
+            transform: scale(1.05);
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
@@ -824,6 +901,36 @@
                     <button class="btn-main" style="padding:10px; margin-bottom:0; font-size:12px;" onclick="adjustTimer(-30)">-0:30</button>
                 </div>
                 <button class="btn-main" style="margin-top:8px; width:100%;" onclick="toggleTimer()">СТАРТ / ПАУЗА</button>
+                <div style="position:relative; margin-top:8px;">
+                    <button class="btn-main sound-selector-btn" onclick="toggleSoundPopup()">🔊</button>
+                    <div id="sound-popup" class="sound-popup">
+                        <div style="color:var(--accent-neon-blue); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; text-align:center;">Выбор озвучки таймера</div>
+                        <div class="sound-option">
+                            <span class="sound-name">🔔 Классический звонок</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('bell')">▶ PLAY</button>
+                        </div>
+                        <div class="sound-option">
+                            <span class="sound-name">🚨 Сирена</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('siren')">▶ PLAY</button>
+                        </div>
+                        <div class="sound-option">
+                            <span class="sound-name">⏰ Будильник</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('alarm')">▶ PLAY</button>
+                        </div>
+                        <div class="sound-option">
+                            <span class="sound-name">🎵 Мелодия</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('melody')">▶ PLAY</button>
+                        </div>
+                        <div class="sound-option">
+                            <span class="sound-name">💥 Взрыв</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('explosion')">▶ PLAY</button>
+                        </div>
+                        <div class="sound-option">
+                            <span class="sound-name">🎺 Фанфары</span>
+                            <button class="sound-play-btn" onclick="playSoundPreview('fanfare')">▶ PLAY</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="watermark">(TG - vadymtm90)</div>
         </div>
@@ -2865,6 +2972,182 @@
             closeConfirmModal();
             closeModals();
         }
+
+        // ===== SOUND SELECTOR FUNCTIONS =====
+        let selectedTimerSound = localStorage.getItem('bot_timer_sound') || 'bell';
+        let soundPopupOpen = false;
+
+        function toggleSoundPopup() {
+            soundPopupOpen = !soundPopupOpen;
+            const popup = document.getElementById('sound-popup');
+            if (popup) {
+                popup.classList.toggle('show', soundPopupOpen);
+            }
+        }
+
+        // Закрываем popup при клике вне его
+        document.addEventListener('click', (e) => {
+            if (soundPopupOpen && !e.target.closest('.sound-selector-btn') && !e.target.closest('.sound-popup')) {
+                soundPopupOpen = false;
+                const popup = document.getElementById('sound-popup');
+                if (popup) popup.classList.remove('show');
+            }
+        });
+
+        function playSoundPreview(type) {
+            selectedTimerSound = type;
+            localStorage.setItem('bot_timer_sound', type);
+            playTimerEndSound(type);
+        }
+
+        function playTimerEndSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            switch(type) {
+                case 'bell':
+                    playBellSound();
+                    break;
+                case 'siren':
+                    playSirenSound();
+                    break;
+                case 'alarm':
+                    playAlarmClockSound();
+                    break;
+                case 'melody':
+                    playMelodySound();
+                    break;
+                case 'explosion':
+                    playExplosionSound();
+                    break;
+                case 'fanfare':
+                    playFanfareSound();
+                    break;
+                default:
+                    playAlarm();
+            }
+        }
+
+        function playBellSound() {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800 + i * 100, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }, i * 200);
+            }
+        }
+
+        function playSirenSound() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sawtooth';
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            
+            for (let i = 0; i < 6; i++) {
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime + i * 0.5);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + i * 0.5 + 0.25);
+                osc.frequency.linearRampToValueAtTime(400, audioCtx.currentTime + i * 0.5 + 0.5);
+            }
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 3);
+        }
+
+        function playAlarmClockSound() {
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.1);
+                }, i * 150);
+            }
+        }
+
+        function playMelodySound() {
+            const notes = [523, 659, 784, 1047, 784, 659, 523];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }, i * 200);
+            });
+        }
+
+        function playExplosionSound() {
+            const bufferSize = audioCtx.sampleRate * 0.5;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+            }
+            const source = audioCtx.createBufferSource();
+            const gain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            source.buffer = buffer;
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            filter.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+            source.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            source.start();
+        }
+
+        function playFanfareSound() {
+            const notes = [392, 523, 659, 784, 1047, 784, 1047];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const osc2 = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    osc2.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.type = 'triangle';
+                    osc2.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    osc2.frequency.setValueAtTime(freq * 1.5, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc2.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                    osc2.stop(audioCtx.currentTime + 0.4);
+                }, i * 250);
+            });
+        }
+
+        // Переопределяем playAlarm для использования выбранной озвучки
+        const originalPlayAlarm = playAlarm;
+        playAlarm = function() {
+            playTimerEndSound(selectedTimerSound);
+        };
     </script>
 </body>
 </html>
