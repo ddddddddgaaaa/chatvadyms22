@@ -2096,15 +2096,16 @@
             }
         }
         function openWheel() {
-            // При открытии рулетки обновляем список из участников чата
-            wheelParticipants = getActiveParticipants();
+            // При открытии рулетки обновляем список из участников чата ТОЛЬКО если нет импортированных участников
+            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
+                wheelParticipants = getActiveParticipants();
+            }
             document.getElementById('wheel-modal').style.display = 'flex';
             // синхронизируем чекбокс автокрута
             const autos = document.getElementById('autoskip-checkbox');
             if (autos) autos.checked = !!autoSpinEnabled;
             document.getElementById('elim-log').innerText = '';
             currentRotation = 0;
-            setSpinMode('elimination');
             drawWheel(0);
         }
         function reSpinToHome() {
