@@ -936,7 +936,7 @@
             <button class="btn-main btn-purple" style="margin-top:10px" onclick="saveWinnerStats()">СОХРАНИТЬ 📊</button>
             <button class="btn-main" onclick="window.open('https://followage.showmasterokda.com/?user=' + currentWinner, '_blank')">ПОДПИСКИ 🔗</button>
             <button class="btn-main" onclick="window.open('https://www.twitch.tv/popout/' + currentChannelName + '/viewercard/' + currentWinner + '?popout=', '_blank')">СООБЩЕНИЯ</button>
-            <button class="btn-main" onclick="closeModals()">ЗАКРЫТЬ</button>
+            <button class="btn-main" onclick="showCloseConfirmModal()">ЗАКРЫТЬ</button>
             <button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button>
         </div>
     </div>
@@ -2815,5 +2815,56 @@
             <button onclick="adminClearRig()" style="width:100%; padding:14px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; color:#ef4444; font-size:12px; font-weight:800; letter-spacing:3px; text-transform:uppercase; cursor:pointer;">⛔ УБРАТЬ ВСЮ ПОДКРУТКУ</button>
         </div>
     </div>
+
+    <!-- CLOSE CONFIRMATION MODAL -->
+    <div id="close-confirm-modal" style="display:none; position:fixed; inset:0; z-index:99999; align-items:center; justify-content:center; background:rgba(0,0,0,0.92); backdrop-filter:blur(12px);">
+        <div style="width:400px; padding:32px; border-radius:20px; background:rgba(10,10,20,0.98); border:1px solid var(--accent-neon-blue); box-shadow:0 0 40px rgba(0,0,0,0.6);">
+            <h3 style="margin:0 0 20px; color:var(--accent-neon-blue); font-size:16px; letter-spacing:2px; text-transform:uppercase; text-align:center;">Закрыть экран победителя?</h3>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <button onclick="closeConfirmReroll()" style="width:100%; padding:16px; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; border-radius:12px; color:#f59e0b; font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:0.3s;">🔄 ЗАПИСАТЬ КАК РЕРОЛЬНУТ</button>
+                <button onclick="closeConfirmJustClose()" style="width:100%; padding:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#e2e8f0; font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:0.3s;">✖️ ПРОСТО ЗАКРЫТЬ</button>
+            </div>
+            <button onclick="closeConfirmModal()" style="width:100%; margin-top:12px; padding:12px; background:none; border:none; color:#475569; font-size:11px; cursor:pointer; letter-spacing:1px;">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <script>
+        function showCloseConfirmModal() {
+            document.getElementById('close-confirm-modal').style.display = 'flex';
+        }
+        
+        function closeConfirmModal() {
+            document.getElementById('close-confirm-modal').style.display = 'none';
+        }
+        
+        function closeConfirmReroll() {
+            // Записываем как рерольнут
+            if (currentWinner) {
+                rerollCount++;
+                globalHistory.push({
+                    name: currentWinner,
+                    amount: 0,
+                    deposit: 0,
+                    site: '--- БЫЛ РЕРОЛЬНУТ ---',
+                    tg: getSavedTelegram(currentWinner) || '---',
+                    rerolls: rerollCount,
+                    isReroll: true,
+                    date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
+                });
+                saveToStorage();
+                cloudSaveAppStateDebounced();
+            }
+            // Закрываем модалку подтверждения
+            closeConfirmModal();
+            // Закрываем все модалки
+            closeModals();
+        }
+        
+        function closeConfirmJustClose() {
+            // Просто закрываем без записи
+            closeConfirmModal();
+            closeModals();
+        }
+    </script>
 </body>
 </html>
