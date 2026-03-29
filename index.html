@@ -2213,6 +2213,7 @@
             if (autos) autos.checked = !!autoSpinEnabled;
             document.getElementById('elim-log').innerText = '';
             currentRotation = 0;
+            setSpinMode('elimination');
             drawWheel(0);
         }
         function reSpinToHome() {
