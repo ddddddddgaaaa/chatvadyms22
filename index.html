@@ -1248,6 +1248,7 @@
         let selectedImportFormat = 'csv';
         let autoSpinEnabled = false;
         let wheelParticipants = [];
+        let isWheelSpinning = false; // флаг блокировки обновления wheelParticipants во время крута
         let pendingParticipants = JSON.parse(localStorage.getItem('bot_pending_participants') || '[]'); // участники, которые написали кодовое пока рулетка открыта
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
         
@@ -1769,7 +1770,10 @@
         function syncParticipantsState() {
             document.getElementById('user-count').innerText = participants.size;
             updateFullParticipantsList();
-            wheelParticipants = getActiveParticipants();
+            // Не обновляем wheelParticipants если рулетка сейчас крутится
+            if (!isWheelSpinning) {
+                wheelParticipants = getActiveParticipants();
+            }
             saveToStorage();
         }
 
@@ -2461,6 +2465,10 @@
             const duration = parseInt(document.getElementById('dur-input').value) * 1000;
             const n = wheelParticipants.length;
             if (n === 0) return;
+            
+            // Блокируем обновление wheelParticipants извне на время крута
+            isWheelSpinning = true;
+            
             const sliceAngle = (Math.PI * 2) / n;
 
             let winner = null;
@@ -2491,6 +2499,8 @@
                     requestAnimationFrame(animate);
                 } else {
                     drawWheel(endAngle);
+                    // Разблокируем обновление wheelParticipants после завершения крута
+                    isWheelSpinning = false;
                     if (mode === 'normal') {
                         // Если включён автокрут и окно рулетки всё ещё открыто — не открываем экран победителя, а продолжаем крутить
                         if (autoSpinEnabled && document.getElementById('wheel-modal').style.display === 'flex') {
@@ -2543,11 +2553,14 @@
         }
 
         function closeModals() { 
-            // Обрабатываем ожидающих участников перед закрытием рулетки
+            // Обрабатываем ожидающих участников перед закрытия рулетки
             const wheelModal = document.getElementById('wheel-modal');
             if (wheelModal && wheelModal.style.display === 'flex') {
                 processPendingParticipants();
             }
+            
+            // Разблокируем wheelParticipants при закрытии рулетки
+            isWheelSpinning = false;
             
             document.querySelectorAll('.modal').forEach(m => {
                 m.style.display = 'none';
