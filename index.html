@@ -2115,7 +2115,21 @@
                     leaders.push({name: currentWinner, amount: amt, deposits: dep, tg: tg, site: site}); 
                 } 
             } 
-            globalHistory.push({ name: currentWinner, amount: amt, deposit: dep, site: site, tg: tg || '---', rerolls: rerollCount, date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString() }); 
+            // Записываем "НЕТ ИНФОРМАЦИИ" если поля пустые
+            const finalTg = tg && tg !== '---' ? tg : 'НЕТ ИНФОРМАЦИИ';
+            const finalSite = site && site !== '---' ? site : 'НЕТ ИНФОРМАЦИИ';
+            const finalAmt = amt > 0 ? amt : 'НЕТ ИНФОРМАЦИИ';
+            const finalDep = dep > 0 ? dep : 'НЕТ ИНФОРМАЦИИ';
+            
+            globalHistory.push({ 
+                name: currentWinner, 
+                amount: finalAmt, 
+                deposit: finalDep, 
+                site: finalSite, 
+                tg: finalTg, 
+                rerolls: rerollCount, 
+                date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString() 
+            }); 
             rerollCount = 0; 
             renderLeaderboard(); 
             closeModals(); 
@@ -2155,7 +2169,11 @@
                 if (h.isReroll) {
                     body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b; font-weight:bold;">🔄 ${h.name}</td><td style="color:#aaa;">${h.tg || '---'}</td><td style="color:#f59e0b; font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button></td></tr>`;
                 } else {
-                    body.innerHTML += `<tr><td><small>${h.date}</small></td><td style="color:var(--accent-neon-blue); font-weight:bold;">${h.name}</td><td style="color:#aaa;">${h.tg || '---'}</td><td>${h.site}</td><td style="color:var(--accent-neon-blue); font-weight:bold;">${(h.amount || 0).toLocaleString()} ₽</td><td style="color:white; font-weight:bold;">${(h.deposit || 0).toLocaleString()} ₽</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;" onclick="editHistoryItem(${realIndex})" title="Редактировать">✏️</button><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button></td></tr>`;
+                    const tgDisplay = (h.tg === 'НЕТ ИНФОРМАЦИИ' || h.tg === '---' || !h.tg) ? 'НЕТ ИНФОРМАЦИИ' : h.tg;
+                    const siteDisplay = (h.site === 'НЕТ ИНФОРМАЦИИ' || h.site === '---' || !h.site) ? 'НЕТ ИНФОРМАЦИИ' : h.site;
+                    const amountDisplay = (h.amount === 'НЕТ ИНФОРМАЦИИ' || h.amount === 0 || !h.amount) ? 'НЕТ ИНФОРМАЦИИ' : h.amount.toLocaleString() + ' ₽';
+                    const depositDisplay = (h.deposit === 'НЕТ ИНФОРМАЦИИ' || h.deposit === 0 || !h.deposit) ? 'НЕТ ИНФОРМАЦИИ' : h.deposit.toLocaleString() + ' ₽';
+                    body.innerHTML += `<tr><td><small>${h.date}</small></td><td style="color:var(--accent-neon-blue); font-weight:bold;">${h.name}</td><td style="color:${tgDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : '#aaa'}; font-weight:${tgDisplay === 'НЕТ ИНФОРМАЦИИ' ? 'bold' : 'normal'};">${tgDisplay}</td><td style="color:${siteDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : '#fff'}; font-weight:${siteDisplay === 'НЕТ ИНФОРМАЦИИ' ? 'bold' : 'normal'};">${siteDisplay}</td><td style="color:var(--accent-neon-blue); font-weight:bold;">${amountDisplay}</td><td style="color:${depositDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : 'white'}; font-weight:bold;">${depositDisplay}</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-neon-blue); cursor:pointer;" onclick="editHistoryItem(${realIndex})" title="Редактировать">✏️</button><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button></td></tr>`;
                 }
             });
             document.getElementById('history-modal').style.display = 'flex';
@@ -2212,7 +2230,23 @@
                 if (h.isReroll) {
                     return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — БЫЛ РЕРОЛЬНУТ</span></div>`;
                 }
-                return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span>${h.date.split(' ')[0]} - ${h.site}</span><div><b style="color:var(--accent-neon-blue)">${h.amount > 0 ? '+' + h.amount + ' ₽' : ''}</b><b style="color:white; margin-left:5px;">${h.deposit > 0 ? '(-' + h.deposit + ' ₽)' : ''}</b></div></div>`;
+                const tgDisplay = (h.tg === 'НЕТ ИНФОРМАЦИИ' || h.tg === '---' || !h.tg) ? 'НЕТ ИНФОРМАЦИИ' : h.tg;
+                const siteDisplay = (h.site === 'НЕТ ИНФОРМАЦИИ' || h.site === '---' || !h.site) ? 'НЕТ ИНФОРМАЦИИ' : h.site;
+                const amountDisplay = (h.amount === 'НЕТ ИНФОРМАЦИИ' || h.amount === 0 || !h.amount) ? 'НЕТ ИНФОРМАЦИИ' : h.amount.toLocaleString() + ' ₽';
+                const depositDisplay = (h.deposit === 'НЕТ ИНФОРМАЦИИ' || h.deposit === 0 || !h.deposit) ? 'НЕТ ИНФОРМАЦИИ' : h.deposit.toLocaleString() + ' ₽';
+                return `<div class="hist-row" style="display:flex; flex-direction:column; border-bottom:1px solid rgba(255,255,255,0.05); padding:8px 0; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                        <span style="color:#94a3b8; font-size:11px;">📅 ${h.date}</span>
+                        <span style="color:${siteDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : '#fff'}; font-weight:bold;">${siteDisplay}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:${tgDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : '#aaa'}; font-weight:${tgDisplay === 'НЕТ ИНФОРМАЦИИ' ? 'bold' : 'normal'};">TG: ${tgDisplay}</span>
+                        <div>
+                            <b style="color:${amountDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : 'var(--accent-neon-blue)'};">Вывод: ${amountDisplay}</b>
+                            <b style="color:${depositDisplay === 'НЕТ ИНФОРМАЦИИ' ? '#f59e0b' : 'white'}; margin-left:10px;">Деп: ${depositDisplay}</b>
+                        </div>
+                    </div>
+                </div>`;
             }).reverse().join('') || '<div style="color:#555; text-align:center; margin-top:20px;">Первая победа!</div>';
             document.getElementById('win-amount-input').value = '';
             document.getElementById('win-deposit-input').value = '';
