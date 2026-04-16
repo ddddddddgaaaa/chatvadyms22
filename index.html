@@ -1221,45 +1221,6 @@
             <button class="btn-main btn-purple" onclick="reSpinToHome()">ПЕРЕКРУТИТЬ</button>
         </div>
     </div>
-</```
-
-```
-    </script>
-
-    <!-- EDIT LEADER MODAL -->
-    <div id="edit-leader-modal" class="modal">
-        <div class="modal-content" style="flex-direction: column; width: 400px; padding: 30px;">
-            <div class="close-x" onclick="closeModals()">&times;</div>
-            <h2 style="color: var(--accent-neon-blue); margin: 0 0 20px 0; text-align: center;">Редактировать участника</h2>
-            
-            <input type="hidden" id="edit-leader-original-name">
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Никнейм</label>
-                <input type="text" id="edit-leader-name" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; background: #0b1220; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;">
-            </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display:block; color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Telegram</label>
-                <input type="text" id="edit-leader-tg" placeholder="@username" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; background: #0b1220; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;">
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-                <div>
-                    <label style="display:block; color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Всего выведено (₽)</label>
-                    <input type="number" id="edit-leader-amount" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; background: #0b1220; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;">
-                </div>
-                <div>
-                    <label style="display:block; color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Всего депов (₽)</label>
-                    <input type="number" id="edit-leader-deposits" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; background: #0b1220; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;">
-                </div>
-            </div>
-            
-            <button class="btn-main btn-purple" onclick="saveEditedLeader()" style="width: 100%; padding: 12px;">СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
-        </div>
-    </div>
-
-    <!-- SIMPLE PERCENTAGE ROULETTE MODAL -->
     </div>
     </div>
 
@@ -1294,7 +1255,6 @@
         let wheelParticipants = [];
         let isWheelSpinning = false; // флаг блокировки обновления wheelParticipants во время крута
         let pendingParticipants = JSON.parse(localStorage.getItem('bot_pending_participants') || '[]'); // участники, которые написали кодовое пока рулетка открыта
-        let blacklistedUsers = JSON.parse(localStorage.getItem('bot_blacklist') || '[]'); // черный список пользователей
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
         
         // Color coding based on sum ranges
@@ -1825,33 +1785,9 @@
             updateFullParticipantsList();
             // Не обновляем wheelParticipants если рулетка сейчас крутится
             if (!isWheelSpinning) {
-                wheelParticipants = getActiveParticipants().filter(p => !isBlacklisted(p));
+                wheelParticipants = getActiveParticipants();
             }
             saveToStorage();
-        }
-
-        function isBlacklisted(name) {
-            return blacklistedUsers.some(u => u.toLowerCase() === name.toLowerCase());
-        }
-
-        function addBlacklist(namesStr) {
-            if (!namesStr) return;
-            const names = namesStr.split(',').map(n => n.trim()).filter(n => n);
-            const newSet = new Set(blacklistedUsers);
-            names.forEach(n => newSet.add(n));
-            blacklistedUsers = Array.from(newSet);
-            localStorage.setItem('bot_blacklist', JSON.stringify(blacklistedUsers));
-            syncParticipantsState();
-            console.log('Blacklist updated:', blacklistedUsers);
-        }
-
-        function removeBlacklist(namesStr) {
-            if (!namesStr) return;
-            const names = namesStr.split(',').map(n => n.trim()).filter(n => n);
-            blacklistedUsers = blacklistedUsers.filter(u => !names.some(n => n.toLowerCase() === u.toLowerCase()));
-            localStorage.setItem('bot_blacklist', JSON.stringify(blacklistedUsers));
-            syncParticipantsState();
-            console.log('Blacklist updated:', blacklistedUsers);
         }
 
         function getActiveParticipants() {
@@ -2049,8 +1985,7 @@
             const container = document.getElementById('leaderboard');
             container.innerHTML = '';
             leaders.forEach((item, i) => {
-                // Added onclick handler to open edit modal
-                container.innerHTML += `<div class="leader-item" onclick="openEditLeaderModal('${item.name.replace(/'/g, "\\'")}')" style="cursor:pointer;" title="Нажмите для редактирования"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
+                container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
             });
             saveToStorage();
         }
@@ -2264,60 +2199,6 @@
                 renderLeaderboard();
             } 
         }
-        
-        // New function to open edit modal for a leader
-        function openEditLeaderModal(name) {
-            const leader = leaders.find(l => l.name.toLowerCase() === name.toLowerCase());
-            if (!leader) return;
-
-            document.getElementById('edit-leader-name').value = leader.name;
-            document.getElementById('edit-leader-tg').value = leader.tg || '';
-            document.getElementById('edit-leader-amount').value = leader.amount || 0;
-            document.getElementById('edit-leader-deposits').value = leader.deposits || 0;
-            
-            // Store original name for lookup
-            document.getElementById('edit-leader-original-name').value = name;
-            
-            document.getElementById('edit-leader-modal').style.display = 'flex';
-        }
-
-        // New function to save edited leader data
-        function saveEditedLeader() {
-            const originalName = document.getElementById('edit-leader-original-name').value;
-            const newName = document.getElementById('edit-leader-name').value.trim();
-            const tg = document.getElementById('edit-leader-tg').value.trim();
-            const amount = parseFloat(document.getElementById('edit-leader-amount').value) || 0;
-            const deposits = parseFloat(document.getElementById('edit-leader-deposits').value) || 0;
-
-            if (!newName) {
-                alert('Имя не может быть пустым');
-                return;
-            }
-
-            const leaderIndex = leaders.findIndex(l => l.name.toLowerCase() === originalName.toLowerCase());
-            if (leaderIndex !== -1) {
-                // Update leader object
-                leaders[leaderIndex].name = newName;
-                leaders[leaderIndex].tg = tg;
-                leaders[leaderIndex].amount = amount;
-                leaders[leaderIndex].deposits = deposits;
-
-                // Update participant profile if TG changed
-                if (tg) {
-                    saveParticipantTelegram(newName, tg);
-                    syncParticipantTelegramToCloud(newName, tg);
-                }
-
-                // Note: We do NOT rewrite history here to avoid data loss or inconsistency.
-                // This only updates the current aggregated top view.
-                // If precise history correction is needed, it should be done in History Modal.
-                
-                saveToStorage();
-                renderLeaderboard();
-                closeModals();
-            }
-        }
-
         function openHistory() {
             const body = document.getElementById('history-body');
             body.innerHTML = '';
@@ -2750,12 +2631,7 @@
             }
             requestAnimationFrame(animate);
         }
-        function instantRoll() { 
-            const arr = getActiveParticipants(); 
-            if (arr.length < 1) return alert('Нет участников!'); 
-            let win = pickRiggedWinner(arr); 
-            showWinnerRef(win); 
-        }
+        function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); let win = pickRiggedWinner(arr); showWinnerRef(win); }
         function closeDepRouletteOnly() {
             // Закрываем только рулетку депов
             document.getElementById('dep-roulette-modal').style.display = 'none';
@@ -3021,96 +2897,69 @@
 
         function pickRiggedWinner(pool) {
             if (!pool || pool.length === 0) return null;
-            
-            // Filter out blacklisted users
-            const eligiblePool = pool.filter(p => !isBlacklisted(p));
-            
-            if (eligiblePool.length === 0) {
-                console.warn('All participants are blacklisted!');
-                return pool[Math.floor(Math.random() * pool.length)]; // Fallback if everyone is blacklisted
+            const lowerPool = pool.map(n => n.toLowerCase());
+
+            if (adminRigMode === '100') {
+                const idx = lowerPool.indexOf(adminRigNick100.toLowerCase());
+                if (idx !== -1 && pool.length > 0) return pool[idx];
             }
 
-            // If rigging is active, ensure the rigged user is in the eligible pool
-            if (adminRigMode === '100') {
-                const idx = eligiblePool.map(n => n.toLowerCase()).indexOf(adminRigNick100.toLowerCase());
-                if (idx !== -1) return eligiblePool[idx];
-            }
             if (adminRigMode === 'once' && !adminRigOnceUsed) {
-                const idx = eligiblePool.map(n => n.toLowerCase()).indexOf(adminRigNickSoft.toLowerCase());
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
                 if (idx !== -1) {
                     adminRigOnceUsed = true;
-                    updateAdminRigStatus();
-                    return eligiblePool[idx];
-                }
-            }
-            if (adminRigMode === 'soft') {
-                const weights = eligiblePool.map(p => {
-                    return p.toLowerCase() === adminRigNickSoft.toLowerCase() ? 5 : 1;
-                });
-                const total = weights.reduce((a, b) => a + b, 0);
-                let r = Math.random() * total;
-                for (let i = 0; i < weights.length; i++) {
-                    r -= weights[i];
-                    if (r <= 0) return eligiblePool[i];
+                    adminRigMode = null;
+                    updateAdminStatus();
+                    saveRigToStorage();
+                    syncRigToCloud();
+                    return pool[idx];
                 }
             }
 
-            return eligiblePool[Math.floor(Math.random() * eligiblePool.length)];
+            if (adminRigMode === 'soft') {
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const weights = pool.map((_, i) => i === idx ? 5 : 1);
+                    const total = weights.reduce((a, b) => a + b, 0);
+                    let r = Math.random() * total;
+                    for (let i = 0; i < weights.length; i++) {
+                        r -= weights[i];
+                        if (r <= 0) return pool[i];
+                    }
+                }
+            }
+
+            return pool[Math.floor(Math.random() * pool.length)];
         }
 
         function pickRiggedElimination(pool) {
             if (!pool || pool.length === 0) return null;
             if (pool.length === 1) return pool[0];
-            
-            // Filter out blacklisted users
-            const eligiblePool = pool.filter(p => !isBlacklisted(p));
-            
-            if (eligiblePool.length === 0) {
-                 console.warn('All participants are blacklisted!');
-                 return pool[Math.floor(Math.random() * pool.length)];
-            }
-
-            const lowerPool = eligiblePool.map(n => n.toLowerCase());
+            const lowerPool = pool.map(n => n.toLowerCase());
             if (adminRigMode === '100') {
                 const idx = lowerPool.indexOf(adminRigNick100.toLowerCase());
                 if (idx !== -1) {
-                    const others = eligiblePool.filter((p, i) => i !== idx);
+                    const others = pool.filter((p, i) => i !== idx);
                     return others[Math.floor(Math.random() * others.length)];
                 }
             }
             if (adminRigMode === 'once' && !adminRigOnceUsed) {
                 const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
                 if (idx !== -1) {
-                    adminRigOnceUsed = true;
-                    updateAdminRigStatus();
-                    const others = eligiblePool.filter((p, i) => i !== idx);
-                    return others[Math.floor(Math.random() * others.length)];
-                }
-            }
-            if (adminRigMode === 'soft') {
-                const weights = eligiblePool.map(p => {
-                    return p.toLowerCase() === adminRigNickSoft.toLowerCase() ? 5 : 1;
-                });
-                const total = weights.reduce((a, b) => a + b, 0);
-                let r = Math.random() * total;
-                for (let i = 0; i < weights.length; i++) {
-                    r -= weights[i];
-                    if (r <= 0) return eligiblePool[i];
-                }
-            }
-                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
-                if (idx !== -1) {
-                    const others = eligiblePool.filter((p, i) => i !== idx);
+                    const others = pool.filter((p, i) => i !== idx);
                     if (others.length > 0) return others[Math.floor(Math.random() * others.length)];
                 }
             }
             if (adminRigMode === 'soft') {
-                const weights = lowerPool.map((_, i) => i === idx ? 0.2 : 1);
-                const total = weights.reduce((a,b) => a+b, 0);
-                let r = Math.random() * total;
-                for (let i=0;i<weights.length;i++){
-                    r -= weights[i];
-                    if (r <= 0) return pool[i];
+                const idx = lowerPool.indexOf(adminRigNickSoft.toLowerCase());
+                if (idx !== -1) {
+                    const weights = pool.map((_, i) => i === idx ? 0.2 : 1);
+                    const total = weights.reduce((a,b) => a+b, 0);
+                    let r = Math.random() * total;
+                    for (let i=0;i<weights.length;i++){
+                        r -= weights[i];
+                        if (r <= 0) return pool[i];
+                    }
                 }
             }
             return pool[Math.floor(Math.random() * pool.length)];
