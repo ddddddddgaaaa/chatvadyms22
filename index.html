@@ -1985,7 +1985,7 @@
             const container = document.getElementById('leaderboard');
             container.innerHTML = '';
             leaders.forEach((item, i) => {
-                container.innerHTML += `<div class="leader-item"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:var(--accent-neon-blue);">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
+                container.innerHTML += `<div class="leader-item" onclick="openLeaderEditModal('${item.name.replace(/'/g, "\\'")}')" style="cursor:pointer;"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:${getColorForSum(item.amount)};">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
             });
             saveToStorage();
         }
@@ -2340,6 +2340,31 @@
             setSpinMode('elimination');
             drawWheel(0);
         }
+        function openLeaderEditModal(name) {
+            const leader = leaders.find(l => l.name.toLowerCase() === name.toLowerCase());
+            if (!leader) return;
+            
+            const newName = prompt('Изменить никнейм:', leader.name);
+            if (newName === null) return; // Cancelled
+            
+            const newAmountStr = prompt('Изменить общую сумму выводов (₽):', leader.amount);
+            if (newAmountStr === null) return; // Cancelled
+            
+            const newAmount = parseFloat(newAmountStr);
+            if (isNaN(newAmount)) {
+                alert('Некорректная сумма');
+                return;
+            }
+
+            // Update leader data
+            leader.name = newName.trim() || leader.name;
+            leader.amount = newAmount;
+            
+            // Recalculate and save
+            saveToStorage();
+            renderLeaderboard();
+            cloudSaveAppStateDebounced();
+        }
         function reSpinToHome() {
             rerollCount++;
             if (currentWinner) {
@@ -2355,6 +2380,7 @@
                 });
                 syncRerollToCloud(currentWinner, rerollCount);
                 saveToStorage();
+                cloudSaveAppStateDebounced();
             }
             const arr = getActiveParticipants();
             if (arr.length === 0) {
