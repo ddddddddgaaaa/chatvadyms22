@@ -1109,7 +1109,7 @@
             </div>
         </div>
         <div class="panel panel-with-bg" style="padding: 15px;">
-            <div class="animated-header" id="participation-header">ДЛЯ УЧАСТИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ!</div>
+            <div class="animated-header" id="participation-header">TG - lattsetofficial ··· ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ! ··· TG - lattsetofficial</div>
             <div class="middle-split">
                 <div class="red-participants">
                     <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
@@ -1256,7 +1256,55 @@
         let isWheelSpinning = false; // флаг блокировки обновления wheelParticipants во время крута
         let pendingParticipants = JSON.parse(localStorage.getItem('bot_pending_participants') || '[]'); // участники, которые написали кодовое пока рулетка открыта
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
+        let blacklistNicks = JSON.parse(localStorage.getItem('bot_blacklist_nicks') || '["liri1x"]');
         
+        function normalizeBlacklistNick(name) {
+            return String(name || '').trim().toLowerCase().replace(/^@+/, '');
+        }
+        
+        function parseBlacklistInput(raw) {
+            return Array.from(new Set(String(raw || '').split(',').map(normalizeBlacklistNick).filter(Boolean)));
+        }
+        
+        function getBlacklistSet() {
+            return new Set((Array.isArray(blacklistNicks) ? blacklistNicks : []).map(normalizeBlacklistNick).filter(Boolean));
+        }
+        
+        function isBlacklistedNick(name) {
+            return getBlacklistSet().has(normalizeBlacklistNick(name));
+        }
+        
+        function filterBlacklistedNames(list) {
+            return (Array.isArray(list) ? list : []).filter(name => !isBlacklistedNick(name));
+        }
+        
+        function saveBlacklistToStorage() {
+            localStorage.setItem('bot_blacklist_nicks', JSON.stringify(blacklistNicks || []));
+        }
+        
+        function renderBlacklistManager() {
+            const input = document.getElementById('blacklist-input');
+            const preview = document.getElementById('blacklist-preview');
+            const displayValue = (Array.isArray(blacklistNicks) ? blacklistNicks : []).join(', ');
+            if (input) input.value = displayValue;
+            if (preview) {
+                const items = Array.isArray(blacklistNicks) ? blacklistNicks : [];
+                preview.innerHTML = items.length
+                    ? items.map((nick) => `<div style="padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.05);"><b style="color:#f59e0b;">${nick}</b></div>`).join('')
+                    : '<span style="color:#64748b;">(пока пусто)</span>';
+            }
+        }
+        
+        function saveBlacklistFromInput() {
+            const input = document.getElementById('blacklist-input');
+            blacklistNicks = parseBlacklistInput(input ? input.value : '');
+            saveBlacklistToStorage();
+            renderBlacklistManager();
+            const wheelModal = document.getElementById('wheel-modal');
+            if (wheelModal && wheelModal.style.display === 'flex') {
+                drawWheel(0);
+            }
+        }
         // Color coding based on sum ranges
         function getColorForSum(sum) {
             if (sum >= 0 && sum <= 100) return '#00bfff'; // голубой (light blue)
@@ -1564,6 +1612,7 @@
             localStorage.setItem('bot_global_history', JSON.stringify(globalHistory));
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
             localStorage.setItem('bot_channel_name', currentChannelName);
+            saveBlacklistToStorage();
             // participants не сохраняем в localStorage, они идут из Firebase
         }
 
@@ -1793,6 +1842,15 @@
         function getActiveParticipants() {
             return Array.from(participants);
         }
+        
+        function getWheelPool(mode = selectedSpinMode) {
+            const wheelPool = Array.isArray(wheelParticipants) ? wheelParticipants.slice() : [];
+            return mode === 'normal' ? filterBlacklistedNames(wheelPool) : wheelPool;
+        }
+        
+        function getNormalRollPool() {
+            return filterBlacklistedNames(getActiveParticipants());
+        }
 
         function setCloudStatus(text, color) {
             try {
@@ -1842,7 +1900,7 @@
         function updateParticipationHeader() {
             const header = document.getElementById('participation-header');
             if (header) {
-                header.textContent = `ДЛЯ УЧАСТИЯ В ПРОКАЧКЕ "${currentCodeword}" В ЧАТ`;
+                header.textContent = `ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "${currentCodeword}" В ЧАТ`;
             }
         }
         function openAuthModal() {
