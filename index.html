@@ -1065,7 +1065,7 @@
             <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
             <div style="position:relative;">
                 <button class="btn-main btn-purple" onclick="toggleRollOptions()">БЫСТРЫЙ РОЛЛ</button>
-                <div id="roll-options" style="position:absolute; bottom:calc(100% + 6px); left:0; right:0; display:flex; gap:6px; opacity:0; transform:translateY(8px); pointer-events:none; transition:opacity 0.3s ease, transform 0.3s ease; z-index:100;">
+                <div id="roll-options" style="position:absolute; bottom:calc(100% + 10px); left:0; right:0; display:flex; gap:8px; padding:10px; background:rgba(8,8,18,0.97); border:1px solid var(--accent-neon-blue); border-radius:12px; box-shadow:0 10px 32px rgba(0,0,0,0.75); opacity:0; transform:translateY(14px); pointer-events:none; transition:opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1); z-index:100;">
                     <button class="btn-main btn-purple" style="padding:10px; margin-bottom:0; font-size:11px; flex:1;" onclick="instantRoll(1)">1 ПОБЕДИТЕЛЬ</button>
                     <button class="btn-main btn-purple" style="padding:10px; margin-bottom:0; font-size:11px; flex:1;" onclick="instantRoll(2)">2 ПОБЕДИТЕЛЯ</button>
                 </div>
@@ -1151,6 +1151,7 @@
     <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:11px;" onclick="setDur(15)">15</button>
     <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:11px;" onclick="setDur(30)">30</button>
 </div></div><button id="roll-button" class="btn-main btn-purple" style="padding: 18px; font-size: 18px;" onclick="executeSpin()">КРУТИТЬ! 🚀</button><label style="display:flex; align-items:center; gap:8px; margin-top:6px;"><input id="autoskip-checkbox" type="checkbox"> <span style="font-size:13px; color:#ccc;">Автокрут (пока окно открыто)</span></label></div></div></div>
+    <div id="duel-modal" class="modal"><div class="modal-content" style="flex-direction:column; align-items:center; min-width:520px; max-width:600px; padding:30px; gap:6px;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="margin:0; color:var(--accent-neon-blue); text-shadow:none; font-size:22px; letter-spacing:1px;">🎲 ФИНАЛ — КУБИКИ</h2><div id="duel-nicknames" style="display:flex; gap:40px; margin:18px 0 8px; font-size:15px; font-weight:800; text-transform:uppercase; color:var(--soft-light); letter-spacing:1px;"></div><div id="duel-dice" style="display:flex; gap:40px; margin:10px 0 20px;"></div><button id="duel-roll-btn" class="btn-main btn-purple" style="width:220px; padding:16px; font-size:15px; letter-spacing:2px;" onclick="rollDuelDice()">🎲 КРУТИТЬ КУБИКИ</button></div></div>
     <div id="import-participants-modal" class="modal">
         <div class="modal-content import-modal-content">
             <div class="close-x" onclick="closeModals()">&times;</div>
@@ -2710,7 +2711,11 @@
                         } else {
                             setTimeout(() => {
                                 drawWheel(0);
-                                if (autoSpinEnabled) {
+                                if (duelMode && wheelParticipants.length === 2) {
+                                    document.getElementById('wheel-modal').style.display = 'none';
+                                    duelMode = false;
+                                    openDuelModal(wheelParticipants[0], wheelParticipants[1]);
+                                } else if (autoSpinEnabled) {
                                     startSpin('elimination');
                                 } else {
                                     document.getElementById('roll-button').disabled = false;
@@ -2722,9 +2727,58 @@
             }
             requestAnimationFrame(animate);
         }
-        function toggleRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; const open = el.style.opacity === '1'; el.style.opacity = open ? '0' : '1'; el.style.transform = open ? 'translateY(8px)' : 'translateY(0)'; el.style.pointerEvents = open ? 'none' : 'auto'; }
-        function hideRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; el.style.pointerEvents = 'none'; }
-        function instantRoll(count) { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); hideRollOptions(); count = count || 1; if (count >= 2) { if (arr.length < 2) return alert('Нужно минимум 2 участника!'); const first = pickRiggedWinner(arr); const pool = arr.filter(u => u.toLowerCase() !== first.toLowerCase()); const second = pickRiggedWinner(pool); showWinnerRef(first + ' | ' + second); } else { showWinnerRef(pickRiggedWinner(arr)); } }
+        let duelMode = false;
+        let duelPlayers = [];
+        let duelRolling = false;
+        function toggleRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; const open = el.style.opacity === '1'; el.style.opacity = open ? '0' : '1'; el.style.transform = open ? 'translateY(14px)' : 'translateY(0)'; el.style.pointerEvents = open ? 'none' : 'auto'; }
+        function hideRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; el.style.opacity = '0'; el.style.transform = 'translateY(14px)'; el.style.pointerEvents = 'none'; }
+        function instantRoll(count) { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); hideRollOptions(); count = count || 1; if (count >= 2) { if (arr.length < 2) return alert('Нужно минимум 2 участника!'); if (arr.length === 2) { openDuelModal(arr[0], arr[1]); return; } duelMode = true; wheelParticipants = arr.slice(); openWheel(); document.getElementById('wheel-modal').style.display = 'flex'; startSpin('elimination'); } else { showWinnerRef(pickRiggedWinner(arr)); } }
+        function openDuelModal(a, b) {
+            duelPlayers = [a, b];
+            document.getElementById('duel-nicknames').innerHTML = duelPlayers.map(n => `<div style="text-align:center;"><div style="font-size:12px; color:var(--accent-neon-blue); margin-bottom:4px;">🎲</div><div>${n}</div></div>`).join('');
+            renderDuelDice(0, 0);
+            const btn = document.getElementById('duel-roll-btn');
+            btn.style.display = 'block';
+            btn.disabled = false;
+            document.getElementById('duel-modal').style.display = 'flex';
+        }
+        function renderDuelDice(v1, v2) {
+            const diceChars = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+            const container = document.getElementById('duel-dice');
+            if (!container) return;
+            container.innerHTML = [v1, v2].map(v => `<div style="width:80px; height:80px; display:flex; align-items:center; justify-content:center; font-size:54px; background:rgba(8,8,18,0.97); border:2px solid var(--accent-neon-blue); border-radius:14px; color:#fff; box-shadow:0 0 18px rgba(255,20,147,0.25);">${v > 0 ? diceChars[v] : '🎲'}</div>`).join('');
+        }
+        function rollDuelDice() {
+            if (duelRolling) return;
+            duelRolling = true;
+            const btn = document.getElementById('duel-roll-btn');
+            btn.disabled = true;
+            const target1 = 1 + Math.floor(Math.random() * 6);
+            const target2 = 1 + Math.floor(Math.random() * 6);
+            const startTime = Date.now();
+            const total = 900;
+            function animate() {
+                const t = Date.now() - startTime;
+                const progress = Math.min(t / total, 1);
+                const v1 = progress >= 1 ? target1 : 1 + Math.floor(Math.random() * 6);
+                const v2 = progress >= 1 ? target2 : 1 + Math.floor(Math.random() * 6);
+                renderDuelDice(v1, v2);
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    duelRolling = false;
+                    if (v1 === v2) {
+                        btn.disabled = false;
+                        renderDuelDice(0, 0);
+                        return;
+                    }
+                    const winner = v1 > v2 ? duelPlayers[0] : duelPlayers[1];
+                    document.getElementById('duel-modal').style.display = 'none';
+                    showWinnerRef(winner);
+                }
+            }
+            animate();
+        }
         function closeDepRouletteOnly() {
             // Закрываем только рулетку депов
             document.getElementById('dep-roulette-modal').style.display = 'none';
