@@ -1063,7 +1063,13 @@
             <button class="btn-main" onclick="resetAll()">Сброс участников</button>
             <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">+</span></button>
             <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
-            <button class="btn-main btn-purple" onclick="instantRoll()">БЫСТРЫЙ РОЛЛ</button>
+            <div style="position:relative;">
+                <button class="btn-main btn-purple" onclick="toggleRollOptions()">БЫСТРЫЙ РОЛЛ</button>
+                <div id="roll-options" style="position:absolute; bottom:calc(100% + 6px); left:0; right:0; display:flex; gap:6px; opacity:0; transform:translateY(8px); pointer-events:none; transition:opacity 0.3s ease, transform 0.3s ease; z-index:100;">
+                    <button class="btn-main btn-purple" style="padding:10px; margin-bottom:0; font-size:11px; flex:1;" onclick="instantRoll(1)">1 ПОБЕДИТЕЛЬ</button>
+                    <button class="btn-main btn-purple" style="padding:10px; margin-bottom:0; font-size:11px; flex:1;" onclick="instantRoll(2)">2 ПОБЕДИТЕЛЯ</button>
+                </div>
+            </div>
             <button class="btn-main" onclick="openStats()">АНАЛИТИКА ПРОЕКТОВ</button>
             <button class="btn-main" onclick="openHistory()">ИСТОРИЯ ВЫПАДЕНИЙ</button>
             <div style="margin-top: auto;">
@@ -2716,7 +2722,9 @@
             }
             requestAnimationFrame(animate);
         }
-        function instantRoll() { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); let win = pickRiggedWinner(arr); showWinnerRef(win); }
+        function toggleRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; const open = el.style.opacity === '1'; el.style.opacity = open ? '0' : '1'; el.style.transform = open ? 'translateY(8px)' : 'translateY(0)'; el.style.pointerEvents = open ? 'none' : 'auto'; }
+        function hideRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; el.style.opacity = '0'; el.style.transform = 'translateY(8px)'; el.style.pointerEvents = 'none'; }
+        function instantRoll(count) { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); hideRollOptions(); count = count || 1; if (count >= 2) { if (arr.length < 2) return alert('Нужно минимум 2 участника!'); const first = pickRiggedWinner(arr); const pool = arr.filter(u => u.toLowerCase() !== first.toLowerCase()); const second = pickRiggedWinner(pool); showWinnerRef(first + ' | ' + second); } else { showWinnerRef(pickRiggedWinner(arr)); } }
         function closeDepRouletteOnly() {
             // Закрываем только рулетку депов
             document.getElementById('dep-roulette-modal').style.display = 'none';
