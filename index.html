@@ -1019,6 +1019,98 @@
             background: rgba(34,197,94,0.4);
             transform: scale(1.05);
         }
+        /* DUEL 3D DICE STYLES */
+        .duel-player-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .duel-player-name {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--soft-light);
+            max-width: 150px;
+            text-align: center;
+            word-break: break-word;
+        }
+        .dice-scene {
+            width: 110px;
+            height: 110px;
+            perspective: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dice-cube {
+            width: 84px;
+            height: 84px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg));
+            transition: transform 0.12s linear;
+        }
+        .dice-cube.is-rolling {
+            animation: diceTumble 0.9s cubic-bezier(0.25, 0.8, 0.35, 1) forwards;
+        }
+        @keyframes diceTumble {
+            0% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateZ(0); }
+            25% { transform: rotateX(360deg) rotateY(180deg) translateZ(14px) scale(1.08); }
+            50% { transform: rotateX(540deg) rotateY(360deg) translateZ(0) scale(1); }
+            75% { transform: rotateX(720deg) rotateY(540deg) translateZ(-8px) scale(0.96); }
+            100% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateZ(0) scale(1); }
+        }
+        .dice-face {
+            position: absolute;
+            width: 84px;
+            height: 84px;
+            background: linear-gradient(145deg, #f8fafc, #cbd5e1);
+            border: 2px solid rgba(15, 23, 42, 0.4);
+            border-radius: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 10px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.15);
+            backface-visibility: hidden;
+        }
+        .dice-face span { align-self: center; justify-self: center; }
+        .dice-pip {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #1e293b, #0f172a);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.5);
+        }
+        .dice-landed {
+            animation: diceLand 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes diceLand {
+            0% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateY(-12px) scale(1.12); }
+            100% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateY(0) scale(1); }
+        }
+        .duel-roll-btn {
+            width: 130px;
+            padding: 9px 10px;
+            margin-bottom: 0;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+        }
+        .duel-roll-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .duel-result-label {
+            font-size: 22px;
+            font-weight: 900;
+            color: #fff;
+            min-height: 30px;
+            text-shadow: 0 0 14px rgba(255,20,147,0.6);
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -1151,7 +1243,7 @@
     <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:11px;" onclick="setDur(15)">15</button>
     <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:11px;" onclick="setDur(30)">30</button>
 </div></div><button id="roll-button" class="btn-main btn-purple" style="padding: 18px; font-size: 18px;" onclick="executeSpin()">КРУТИТЬ! 🚀</button><label style="display:flex; align-items:center; gap:8px; margin-top:6px;"><input id="autoskip-checkbox" type="checkbox"> <span style="font-size:13px; color:#ccc;">Автокрут (пока окно открыто)</span></label></div></div></div>
-    <div id="duel-modal" class="modal"><div class="modal-content" style="flex-direction:column; align-items:center; min-width:520px; max-width:600px; padding:30px; gap:6px;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="margin:0; color:var(--accent-neon-blue); text-shadow:none; font-size:22px; letter-spacing:1px;">🎲 ФИНАЛ — КУБИКИ</h2><div id="duel-nicknames" style="display:flex; gap:40px; margin:18px 0 8px; font-size:15px; font-weight:800; text-transform:uppercase; color:var(--soft-light); letter-spacing:1px;"></div><div id="duel-dice" style="display:flex; gap:40px; margin:10px 0 20px;"></div><button id="duel-roll-btn" class="btn-main btn-purple" style="width:220px; padding:16px; font-size:15px; letter-spacing:2px;" onclick="rollDuelDice()">🎲 КРУТИТЬ КУБИКИ</button></div></div>
+    <div id="duel-modal" class="modal"><div class="modal-content" style="flex-direction:column; align-items:center; min-width:580px; max-width:680px; padding:30px; gap:8px;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="margin:0; color:var(--accent-neon-blue); text-shadow:none; font-size:22px; letter-spacing:1px;">🎲 ФИНАЛ — КУБИКИ</h2><div style="font-size:12px; color:#94a3b8; letter-spacing:1px; text-align:center;">Каждый игрок бросает свой кубик по очереди</div><div id="duel-dice" style="display:flex; gap:70px; margin:20px 0 16px;"></div><button id="duel-confirm-btn" class="btn-main btn-purple" style="width:240px; padding:14px; font-size:14px; letter-spacing:2px; display:none;" onclick="confirmDuel()">✓ ПОДТВЕРДИТЬ</button></div></div>
     <div id="import-participants-modal" class="modal">
         <div class="modal-content import-modal-content">
             <div class="close-x" onclick="closeModals()">&times;</div>
@@ -2730,54 +2822,85 @@
         let duelMode = false;
         let duelPlayers = [];
         let duelRolling = false;
+        let duelResults = [0, 0];
+        let duelRolled = [false, false];
         function toggleRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; const open = el.style.opacity === '1'; el.style.opacity = open ? '0' : '1'; el.style.transform = open ? 'translateY(14px)' : 'translateY(0)'; el.style.pointerEvents = open ? 'none' : 'auto'; }
         function hideRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; el.style.opacity = '0'; el.style.transform = 'translateY(14px)'; el.style.pointerEvents = 'none'; }
         function instantRoll(count) { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); hideRollOptions(); count = count || 1; if (count >= 2) { if (arr.length < 2) return alert('Нужно минимум 2 участника!'); if (arr.length === 2) { openDuelModal(arr[0], arr[1]); return; } duelMode = true; wheelParticipants = arr.slice(); openWheel(); document.getElementById('wheel-modal').style.display = 'flex'; startSpin('elimination'); } else { showWinnerRef(pickRiggedWinner(arr)); } }
+        const DUEL_FACE_TRANSFORMS = { 1: 'rotateY(0deg) translateZ(42px)', 6: 'rotateY(90deg) translateZ(42px)', 2: 'rotateY(180deg) translateZ(42px)', 5: 'rotateY(-90deg) translateZ(42px)', 3: 'rotateX(90deg) translateZ(42px)', 4: 'rotateX(-90deg) translateZ(42px)' };
+        const DUEL_FACE_PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+        const DUEL_DICE_ROT = { 1: [0, 0], 2: [0, 180], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, -90] };
+        function renderDiceFaces() {
+            return [1, 6, 2, 5, 3, 4].map(f => {
+                const pips = DUEL_FACE_PIPS[f].map(p => `<span class="dice-pip" style="grid-row:${Math.floor(p / 3) + 1}; grid-column:${(p % 3) + 1};"></span>`).join('');
+                return `<div class="dice-face" style="transform:${DUEL_FACE_TRANSFORMS[f]}">${pips}</div>`;
+            }).join('');
+        }
         function openDuelModal(a, b) {
             duelPlayers = [a, b];
-            document.getElementById('duel-nicknames').innerHTML = duelPlayers.map(n => `<div style="text-align:center;"><div style="font-size:12px; color:var(--accent-neon-blue); margin-bottom:4px;">🎲</div><div>${n}</div></div>`).join('');
-            renderDuelDice(0, 0);
-            const btn = document.getElementById('duel-roll-btn');
-            btn.style.display = 'block';
-            btn.disabled = false;
-            document.getElementById('duel-modal').style.display = 'flex';
-        }
-        function renderDuelDice(v1, v2) {
-            const diceChars = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+            duelResults = [0, 0];
+            duelRolled = [false, false];
+            duelRolling = false;
             const container = document.getElementById('duel-dice');
             if (!container) return;
-            container.innerHTML = [v1, v2].map(v => `<div style="width:80px; height:80px; display:flex; align-items:center; justify-content:center; font-size:54px; background:rgba(8,8,18,0.97); border:2px solid var(--accent-neon-blue); border-radius:14px; color:#fff; box-shadow:0 0 18px rgba(255,20,147,0.25);">${v > 0 ? diceChars[v] : '🎲'}</div>`).join('');
+            container.innerHTML = duelPlayers.map((n, i) => `
+                <div class="duel-player-col">
+                    <div class="duel-player-name">${n}</div>
+                    <div class="dice-scene">
+                        <div class="dice-cube" id="duel-cube-${i}" style="--rx:-25deg; --ry:45deg;">${renderDiceFaces()}</div>
+                    </div>
+                    <div class="duel-result-label" id="duel-result-${i}">—</div>
+                    <button class="btn-main btn-purple duel-roll-btn" id="duel-roll-${i}" onclick="rollDuelDie(${i})">🎲 БРОСИТЬ КУБИК</button>
+                </div>
+            `).join('');
+            const btn = document.getElementById('duel-confirm-btn');
+            if (btn) btn.style.display = 'none';
+            document.getElementById('duel-modal').style.display = 'flex';
         }
-        function rollDuelDice() {
-            if (duelRolling) return;
+        function rollDuelDie(idx) {
+            if (duelRolling || duelRolled[idx]) return;
             duelRolling = true;
-            const btn = document.getElementById('duel-roll-btn');
-            btn.disabled = true;
-            const target1 = 1 + Math.floor(Math.random() * 6);
-            const target2 = 1 + Math.floor(Math.random() * 6);
-            const startTime = Date.now();
-            const total = 900;
-            function animate() {
-                const t = Date.now() - startTime;
-                const progress = Math.min(t / total, 1);
-                const v1 = progress >= 1 ? target1 : 1 + Math.floor(Math.random() * 6);
-                const v2 = progress >= 1 ? target2 : 1 + Math.floor(Math.random() * 6);
-                renderDuelDice(v1, v2);
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    duelRolling = false;
-                    if (v1 === v2) {
-                        btn.disabled = false;
-                        renderDuelDice(0, 0);
-                        return;
-                    }
-                    const winner = v1 > v2 ? duelPlayers[0] : duelPlayers[1];
-                    document.getElementById('duel-modal').style.display = 'none';
-                    showWinnerRef(winner);
+            document.getElementById('duel-roll-' + idx).disabled = true;
+            document.getElementById('duel-result-' + idx).innerText = '...';
+            const cube = document.getElementById('duel-cube-' + idx);
+            const target = 1 + Math.floor(Math.random() * 6);
+            const [frx, fry] = DUEL_DICE_ROT[target];
+            cube.style.setProperty('--rx', (frx - 25) + 'deg');
+            cube.style.setProperty('--ry', (fry + 45) + 'deg');
+            cube.classList.remove('dice-landed');
+            cube.classList.add('is-rolling');
+            setTimeout(() => {
+                cube.classList.remove('is-rolling');
+                cube.classList.add('dice-landed');
+                setTimeout(() => { cube.classList.remove('dice-landed'); }, 400);
+                duelResults[idx] = target;
+                duelRolled[idx] = true;
+                duelRolling = false;
+                document.getElementById('duel-result-' + idx).innerText = target;
+                if (duelRolled[0] && duelRolled[1]) {
+                    const btn = document.getElementById('duel-confirm-btn');
+                    if (btn) btn.style.display = 'block';
                 }
+            }, 900);
+        }
+        function confirmDuel() {
+            if (duelResults[0] === 0 || duelResults[1] === 0) return;
+            if (duelResults[0] === duelResults[1]) {
+                duelResults = [0, 0];
+                duelRolled = [false, false];
+                const btn = document.getElementById('duel-confirm-btn');
+                if (btn) btn.style.display = 'none';
+                [0, 1].forEach(i => {
+                    document.getElementById('duel-result-' + i).innerText = '—';
+                    document.getElementById('duel-roll-' + i).disabled = false;
+                    const cube = document.getElementById('duel-cube-' + i);
+                    if (cube) { cube.style.setProperty('--rx', '-25deg'); cube.style.setProperty('--ry', '45deg'); }
+                });
+                return;
             }
-            animate();
+            const winner = duelResults[0] > duelResults[1] ? duelPlayers[0] : duelPlayers[1];
+            document.getElementById('duel-modal').style.display = 'none';
+            showWinnerRef(winner);
         }
         function closeDepRouletteOnly() {
             // Закрываем только рулетку депов
