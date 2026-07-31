@@ -2042,6 +2042,7 @@
             leaders.sort((a,b) => b.amount - a.amount);
             const container = document.getElementById('leaderboard');
             container.innerHTML = '';
+            container.style.maxHeight = leaders.length > 10 ? '520px' : 'none';
             leaders.forEach((item, i) => {
                 container.innerHTML += `<div class="leader-item" onclick="openLeaderEditModal('${item.name.replace(/'/g, "\\'")}')" style="cursor:pointer;"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:${getColorForSum(item.amount)};">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
             });
