@@ -57,6 +57,43 @@
         .menu-panel {
             overflow: hidden;
         }
+        .menu-panel .btn-main,
+        .menu-panel .btn-purple,
+        .menu-panel .btn-codeword {
+            position: relative;
+            overflow: hidden;
+            transform: translate3d(0, 0, 0);
+            will-change: transform;
+            transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.28s ease, border-color 0.28s ease;
+        }
+        .menu-panel .btn-main::after,
+        .menu-panel .btn-purple::after,
+        .menu-panel .btn-codeword::after {
+            content: '';
+            position: absolute;
+            inset: 0 auto 0 -130%;
+            width: 70%;
+            background: linear-gradient(105deg, transparent, rgba(255,255,255,0.22), transparent);
+            transform: skewX(-18deg);
+            transition: left 0.55s ease;
+            pointer-events: none;
+        }
+        .menu-panel .btn-main:hover,
+        .menu-panel .btn-purple:hover,
+        .menu-panel .btn-codeword:hover {
+            transform: translate3d(5px, -2px, 0) scale(1.02);
+        }
+        .menu-panel .btn-main:hover::after,
+        .menu-panel .btn-purple:hover::after,
+        .menu-panel .btn-codeword:hover::after {
+            left: 140%;
+        }
+        .menu-panel .btn-main:active,
+        .menu-panel .btn-purple:active,
+        .menu-panel .btn-codeword:active {
+            transform: translate3d(2px, 1px, 0) scale(0.985);
+            transition-duration: 0.08s;
+        }
         .menu-panel > *:not(.menu-ambient) {
             position: relative;
             z-index: 1;
@@ -384,6 +421,16 @@
             border-color: var(--accent-success) !important;
             box-shadow: 0 0 28px rgba(34, 197, 94, 0.55), inset 0 0 12px rgba(34, 197, 94, 0.35) !important;
             text-shadow: 0 0 15px rgba(34, 197, 94, 0.8) !important;
+        }
+        .win-presence-label {
+            padding: 6px 10px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 8px;
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.72);
+            font: 700 11px/1.2 'Orbitron', monospace;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
         }
         .middle-split {
             display: flex;
@@ -1075,6 +1122,59 @@
             60% { transform: translateY(4px) scale(0.96) rotate(2deg); }
             100% { transform: translateY(0) scale(1) rotate(0); }
         }
+        .dice-cube {
+            position: relative;
+            width: 84px;
+            height: 84px;
+            transform-style: preserve-3d;
+            transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg));
+            transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s ease;
+            will-change: transform;
+        }
+        .dice-cube:hover {
+            filter: drop-shadow(0 12px 18px rgba(255, 20, 147, 0.32));
+        }
+        .dice-face {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            align-items: center;
+            justify-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 3px solid var(--accent-neon-blue);
+            border-radius: 14px;
+            background: linear-gradient(145deg, #f8fafc, #cbd5e1);
+            box-shadow: inset 0 0 12px rgba(15, 23, 42, 0.18), 0 8px 18px rgba(0,0,0,0.28);
+            backface-visibility: hidden;
+        }
+        .dice-cube.is-rolling {
+            animation: diceCubeRoll 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+            filter: drop-shadow(0 16px 22px rgba(255, 20, 147, 0.46));
+        }
+        .dice-cube.is-landed {
+            animation: diceCubeLand 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes diceCubeRoll {
+            0% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translate3d(0, 0, 0) scale(1); }
+            35% { transform: rotateX(145deg) rotateY(210deg) translate3d(-8px, -12px, 0) scale(1.08); }
+            70% { transform: rotateX(330deg) rotateY(390deg) translate3d(8px, 4px, 0) scale(1.04); }
+            100% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translate3d(0, 0, 0) scale(1); }
+        }
+        @keyframes diceCubeLand {
+            0% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateY(-14px) scale(1.12); }
+            65% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateY(3px) scale(0.96); }
+            100% { transform: rotateX(var(--rx, -25deg)) rotateY(var(--ry, 45deg)) translateY(0) scale(1); }
+        }
+        .modal[style*="display: flex"] .modal-content {
+            animation: modalContentIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes modalContentIn {
+            from { opacity: 0; transform: translate3d(0, 16px, 0) scale(0.97); }
+            to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+        }
         .dice-pip {
             width: 18px;
             height: 18px;
@@ -1104,6 +1204,14 @@
             color: #fff;
             min-height: 36px;
             text-shadow: 0 0 16px rgba(255,20,147,0.7);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -1279,7 +1387,10 @@
                 <h2 id="win-nick" style="font-size: 52px; margin: 0; color: #fff; text-shadow: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">---</h2>
                 <div id="reroll-counter-display" style="color: var(--accent-neon-blue); font-size: 14px; font-weight: bold; margin-top: 6px;">Рероллов: 0</div>
             </div>
-            <div id="win-timer-label" style="border: 1px solid var(--accent-neon-blue); padding: 10px 20px; border-radius: 10px; color: var(--accent-neon-blue); text-shadow: none; font-size: 24px; font-family: 'Orbitron'; flex-shrink: 0;">00:00:00</div>
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0;">
+                <div id="win-timer-label" style="border: 1px solid var(--accent-neon-blue); padding: 10px 20px; border-radius: 10px; color: var(--accent-neon-blue); text-shadow: none; font-size: 24px; font-family: 'Orbitron';">00:00:00</div>
+                <div id="win-stream-duration" class="win-presence-label">НА СТРИМЕ: 00:00:00</div>
+            </div>
         </div>
     <div class="win-grid" style="display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; flex-grow: 1; margin-top: 20px; overflow: hidden;">
         <div class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column;">
@@ -1342,6 +1453,10 @@
         let winnerHistoryLimit = Math.max(5, Math.min(10, parseInt(localStorage.getItem('bot_winner_history_limit') || '5', 10) || 5));
         let rerollCount = 0;
         let currentRotation = 0;
+        let rouletteSessionActive = false;
+        let rouletteEliminated = new Set();
+        const viewerFirstSeenAt = new Map();
+        let winnerShownAt = 0;
         let currentCodeword = "+";
         let selectedImportFormat = 'csv';
         let autoSpinEnabled = false;
@@ -1925,15 +2040,32 @@
         function syncParticipantsState() {
             document.getElementById('user-count').innerText = participants.size;
             updateFullParticipantsList();
-            // Не обновляем wheelParticipants если рулетка сейчас крутится
+            // Не перезаписываем текущую сессию рулетки списком из чата.
+            // Это сохраняет выбывших вне колеса до явного сброса/новой сессии.
             if (!isWheelSpinning) {
-                wheelParticipants = getActiveParticipants();
+                if (!rouletteSessionActive) {
+                    wheelParticipants = getActiveParticipants();
+                } else {
+                    const activeNames = getActiveParticipants();
+                    const activeKeys = new Set(activeNames.map(name => String(name).trim().toLowerCase()));
+                    wheelParticipants = wheelParticipants.filter(name => activeKeys.has(String(name).trim().toLowerCase()) && !rouletteEliminated.has(String(name).trim().toLowerCase()));
+                    activeNames.forEach(name => {
+                        const key = String(name).trim().toLowerCase();
+                        if (!rouletteEliminated.has(key) && !wheelParticipants.some(item => String(item).trim().toLowerCase() === key)) {
+                            wheelParticipants.push(name);
+                        }
+                    });
+                    persistWheelParticipants();
+                }
             }
             saveToStorage();
         }
 
         function getActiveParticipants() {
             return Array.from(participants);
+        }
+        function persistWheelParticipants() {
+            try { localStorage.setItem('bot_wheel_participants', JSON.stringify(wheelParticipants)); } catch(e) { console.warn('wheel save error', e); }
         }
         
         function getWheelPool(mode = selectedSpinMode) {
@@ -2050,6 +2182,10 @@
                 const normalizedMessage = msg.trim().toLowerCase();
                 const normalizedCodeword = currentCodeword.trim().toLowerCase();
                 const time = new Date().toLocaleTimeString();
+                const viewerKey = user.trim().toLowerCase();
+                if (viewerKey && !viewerFirstSeenAt.has(viewerKey)) {
+                    viewerFirstSeenAt.set(viewerKey, Date.now());
+                }
 
                 if (!userMessages[user]) userMessages[user] = [];
                 userMessages[user].push({ time, text: msg });
@@ -2179,6 +2315,20 @@
             frame.src = `https://www.twitch.tv/embed/${safeChannelName}/chat?parent=${encodeURIComponent(parentDomain)}&darkpopout`;
         }
         function updateTimerDisplay() { const h = Math.floor(timerSeconds/3600).toString().padStart(2,'0'), m = Math.floor((timerSeconds%3600)/60).toString().padStart(2,'0'), s = (timerSeconds%60).toString().padStart(2,'0'); document.getElementById('timer').innerText = `${h}:${m}:${s}`; }
+        function formatElapsedDuration(milliseconds) {
+            const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+            const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+        function updateWinnerStreamDuration() {
+            const label = document.getElementById('win-stream-duration');
+            if (!label || !currentWinner) return;
+            const key = currentWinner.trim().toLowerCase();
+            const firstSeenAt = viewerFirstSeenAt.get(key) || winnerShownAt || Date.now();
+            label.innerText = 'НА СТРИМЕ: ' + formatElapsedDuration(Date.now() - firstSeenAt);
+        }
         function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
         function adjustTimer(delta) {
             timerSeconds = Math.max(0, timerSeconds + delta);
@@ -2268,12 +2418,16 @@
             wheelParticipants = Array.isArray(wheelParticipants) ? wheelParticipants : [];
             if (replace) {
                 wheelParticipants = parsedNames.filter(Boolean);
+                rouletteEliminated.clear();
+                rouletteSessionActive = true;
             } else {
                 const set = new Set(wheelParticipants.concat(parsedNames.filter(Boolean)));
                 wheelParticipants = Array.from(set);
             }
+            rouletteSessionActive = true;
             // Сохраняем рулетку локально
-            try { localStorage.setItem('bot_wheel_participants', JSON.stringify(wheelParticipants)); } catch(e) { console.warn('wheel save error', e); }
+            persistWheelParticipants();
+            try { localStorage.setItem('bot_roulette_eliminated', JSON.stringify(Array.from(rouletteEliminated))); } catch(e) { console.warn('roulette elimination save error', e); }
             document.getElementById('import-textarea').value = '';
             document.getElementById('import-replace-checkbox').checked = false;
             updateImportApplyState();
@@ -2427,6 +2581,11 @@
             closeModals();
             currentWinner = name;
             winTimerActive = true;
+            winnerShownAt = Date.now();
+            const winnerKey = String(name || '').trim().toLowerCase();
+            if (winnerKey && !viewerFirstSeenAt.has(winnerKey)) {
+                viewerFirstSeenAt.set(winnerKey, winnerShownAt);
+            }
             const winNickElement = document.getElementById('win-nick');
             const timerLabel = document.getElementById('win-timer-label');
             const statusLabel = document.getElementById('win-status-label');
@@ -2461,26 +2620,40 @@
             document.getElementById('win-tg-input').value = savedTg;
             const winSite = document.getElementById('win-site-select'); if (winSite) winSite.value = '---';
             document.getElementById('winner-screen').style.display = 'flex';
+            updateWinnerStreamDuration();
             const hCont = document.getElementById('win-chat-history');
             hCont.innerHTML = (userMessages[name] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
             let s = 0;
             clearInterval(window.winInt);
+            clearInterval(window.winPresenceInt);
             window.winInt = setInterval(() => { if (winTimerActive) { s++; let sec = s%60, min = Math.floor(s/60), hr = Math.floor(min/60); document.getElementById('win-timer-label').innerText = `${hr.toString().padStart(2,'0')}:${(min%60).toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; } }, 1000);
+            window.winPresenceInt = setInterval(updateWinnerStreamDuration, 1000);
         }
         function updateParticipantPreview() { const container = document.getElementById('participant-list'); if (!container) return; const arr = Array.from(participants).reverse(); const preview = arr.slice(0, 8); container.innerHTML = preview.map(u => { let badge = userRolesCache[u.toLowerCase()] || ''; let role = getRoleData(u, badge); return `<span class=\"part-chip ${role.cls}\">${u}</span>`; }).join(''); }
         function resetWheelParticipants() {
             if (confirm('Сбросить всех участников в рулетке?')) {
                 wheelParticipants = [];
-                try { localStorage.removeItem('bot_wheel_participants'); } catch(e) {}
+                rouletteEliminated.clear();
+                rouletteSessionActive = false;
+                try {
+                    localStorage.removeItem('bot_wheel_participants');
+                    localStorage.removeItem('bot_roulette_eliminated');
+                } catch(e) {}
                 document.getElementById('elim-log').innerText = '';
                 drawWheel(0);
                 alert('Участники рулетки очищены');
             }
         }
         function openWheel() {
-            // Если в рулетке уже есть импортированные участники, не перезаписываем их
-            if (!Array.isArray(wheelParticipants) || wheelParticipants.length === 0) {
+            // Сохраняем текущую сессию: выбывший не возвращается при повторном открытии.
+            if (!rouletteSessionActive || !Array.isArray(wheelParticipants)) {
+                rouletteEliminated.clear();
                 wheelParticipants = getActiveParticipants();
+                rouletteSessionActive = wheelParticipants.length > 0;
+                persistWheelParticipants();
+            } else {
+                wheelParticipants = wheelParticipants.filter(name => !rouletteEliminated.has(String(name).trim().toLowerCase()));
+                persistWheelParticipants();
             }
             const wheelModal = document.getElementById('wheel-modal');
             wheelModal.style.display = 'flex';
@@ -2788,6 +2961,7 @@
             const duration = parseInt(document.getElementById('dur-input').value) * 1000;
             const n = wheelParticipants.length;
             if (n === 0) return;
+            if (mode === 'elimination') rouletteSessionActive = true;
             
             // Блокируем обновление wheelParticipants извне на время крута
             isWheelSpinning = true;
@@ -2840,7 +3014,10 @@
                     } else {
                         document.getElementById('elim-log').innerText = '❌ ВЫБЫЛ: ' + winner;
                         playTick();
+                        rouletteEliminated.add(String(winner).trim().toLowerCase());
                         wheelParticipants.splice(winnerIdx, 1);
+                        persistWheelParticipants();
+                        try { localStorage.setItem('bot_roulette_eliminated', JSON.stringify(Array.from(rouletteEliminated))); } catch(e) { console.warn('roulette elimination save error', e); }
 
                         if (wheelParticipants.length === 0) {
                             document.getElementById('roll-button').disabled = false;
@@ -2977,6 +3154,7 @@
             document.getElementById('winner-screen').style.display = 'none'; 
             winTimerActive = false; 
             clearInterval(window.winInt);
+            clearInterval(window.winPresenceInt);
             // Останавливаем автокрут при закрытии окна рулетки
             autoSpinEnabled = false;
             const autos = document.getElementById('autoskip-checkbox');
@@ -3005,8 +3183,17 @@
         try { loadSiteOptionsFromCloud(); subscribeSiteOptionsFromCloud(); } catch(e) { try { renderSiteSelects(); renderSiteOptionsList(); } catch(_) {} }
         renderLeaderboard();
         updateFullParticipantsList();
-        // load wheel participants from localStorage (if any)
-        try { wheelParticipants = JSON.parse(localStorage.getItem('bot_wheel_participants') || '[]'); } catch(e) { wheelParticipants = []; }
+        // load wheel participants and current elimination session from localStorage
+        try {
+            wheelParticipants = JSON.parse(localStorage.getItem('bot_wheel_participants') || '[]');
+            const savedEliminated = JSON.parse(localStorage.getItem('bot_roulette_eliminated') || '[]');
+            rouletteEliminated = new Set(Array.isArray(savedEliminated) ? savedEliminated : []);
+            rouletteSessionActive = wheelParticipants.length > 0;
+        } catch(e) {
+            wheelParticipants = [];
+            rouletteEliminated = new Set();
+            rouletteSessionActive = false;
+        }
         setImportFormat('csv');
         applyTheme(localStorage.getItem('bot_theme_name') || 'pink');
         updateChannelUi();
