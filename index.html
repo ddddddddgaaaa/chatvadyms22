@@ -372,6 +372,20 @@
             border-radius: 12px;
             background: rgba(255,255,255,0.015);
         }
+        .leaderboard-table-wrap.has-scroll {
+            max-height: 350px;
+        }
+        #leaderboard-search {
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #leaderboard-search:focus {
+            border-color: var(--accent-neon-blue);
+            box-shadow: 0 0 0 2px var(--accent-soft-bg);
+        }
+        #leaderboard-search::placeholder {
+            color: #64748b;
+        }
         .leader-summary-table {
             width: 100%;
             border-collapse: separate;
@@ -509,6 +523,14 @@
             overflow: auto;
             border: 1px solid var(--accent-soft-border);
             border-radius: 14px;
+        }
+        .leader-profile-reroll-info {
+            margin-top: 16px;
+            animation: fadeInUp 0.3s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .leader-profile-table {
             width: 100%;
@@ -1669,7 +1691,7 @@
         </div>
         <div class="panel panel-with-bg">
             <h3 style="margin:0 0 15px 0; color: var(--accent-neon-blue); text-shadow: none;">ТОП (ВЫВОДЫ)</h3>
-            <div class="leaderboard-table-wrap">
+            <div class="leaderboard-table-wrap" id="leaderboard-table-wrap">
                 <table class="leader-summary-table" aria-label="Топ участников по выводам">
                     <thead>
                         <tr><th scope="col">НИК</th><th scope="col">ДЕП</th><th scope="col">ВЫВОД</th></tr>
@@ -1679,6 +1701,9 @@
                         <tr><th scope="row" colspan="1">ИТОГО</th><td id="leaderboard-total-deposit">0 ₽</td><td id="leaderboard-total-withdrawal">0 ₽</td></tr>
                     </tfoot>
                 </table>
+            </div>
+            <div style="margin-top: 12px;">
+                <input type="text" id="leaderboard-search" placeholder="Поиск по нику..." style="width: 100%; padding: 10px 12px; background: var(--dark-purple); border: 1px solid var(--accent-neon-blue); border-radius: 8px; color: var(--soft-light); font-size: 13px; box-sizing: border-box;" oninput="searchLeaderboard(this.value)">
             </div>
             <div onclick="openAdminLogin()" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:160px; height:22px; cursor:default; z-index:10000; background:transparent; border:none; outline:none;"></div>
         </div>
@@ -1712,6 +1737,7 @@
                 <div class="leader-profile-stat"><span>Записей</span><strong id="leader-profile-count">0</strong></div>
                 <div class="leader-profile-stat"><span>Депозиты</span><strong id="leader-profile-deposits">0 ₽</strong></div>
                 <div class="leader-profile-stat"><span>Выводы</span><strong id="leader-profile-withdrawals">0 ₽</strong></div>
+                <div class="leader-profile-stat"><span>Рероллы</span><strong id="leader-profile-rerolls">0</strong></div>
             </div>
             <div class="leader-profile-table-wrap">
                 <table class="leader-profile-table" aria-label="Статистика участника по сайтам">
@@ -2818,6 +2844,7 @@ function subscribeAppStateFromCloud() {
             const container = document.getElementById('leaderboard');
             const totalDepositEl = document.getElementById('leaderboard-total-deposit');
             const totalWithdrawalEl = document.getElementById('leaderboard-total-withdrawal');
+            const wrap = document.getElementById('leaderboard-table-wrap');
             if (!container) return;
             container.innerHTML = '';
 
@@ -2835,9 +2862,24 @@ function subscribeAppStateFromCloud() {
             if (!leaders.length) {
                 container.innerHTML = '<tr><td class="leaderboard-empty" colspan="3">Пока нет записей</td></tr>';
             }
+            // Add scroll class when 10+ entries
+            if (wrap) {
+                wrap.classList.toggle('has-scroll', leaders.length >= 10);
+            }
             if (totalDepositEl) totalDepositEl.innerText = totalDeposits.toLocaleString() + ' ₽';
             if (totalWithdrawalEl) totalWithdrawalEl.innerText = totalWithdrawals.toLocaleString() + ' ₽';
             saveToStorage();
+        }
+
+        function searchLeaderboard(query) {
+            const cleanQuery = String(query || '').trim().toLowerCase();
+            const rows = document.querySelectorAll('#leaderboard .leader-summary-row');
+            rows.forEach(row => {
+                const nameCell = row.querySelector('td:first-child');
+                if (!nameCell) return;
+                const name = nameCell.textContent.toLowerCase();
+                row.style.display = cleanQuery === '' || name.includes(cleanQuery) ? '' : 'none';
+            });
         }
 
         function openLeaderProfile(name) {
@@ -2861,6 +2903,7 @@ function subscribeAppStateFromCloud() {
             const cleanName = String(name || '').trim();
             if (!cleanName) return;
             const history = globalHistory.filter(h => h && !h.isReroll && String(h.name || '').toLowerCase() === cleanName.toLowerCase());
+            const rerollHistory = globalHistory.filter(h => h && h.isReroll && String(h.name || '').toLowerCase() === cleanName.toLowerCase());
             const bySite = new Map();
             history.forEach(entry => {
                 const rawSite = String(entry.site || '').trim();
@@ -2890,9 +2933,44 @@ function subscribeAppStateFromCloud() {
             const totalDepositEl = document.getElementById('leader-profile-total-deposit');
             const totalWithdrawalEl = document.getElementById('leader-profile-total-withdrawal');
             const totalCountEl = document.getElementById('leader-profile-total-count');
+            const rerollsEl = document.getElementById('leader-profile-rerolls');
             if (totalDepositEl) totalDepositEl.innerText = formatRub(deposits);
             if (totalWithdrawalEl) totalWithdrawalEl.innerText = formatRub(withdrawals);
             if (totalCountEl) totalCountEl.innerText = String(history.length);
+            if (rerollsEl) rerollsEl.innerText = String(rerollHistory.length);
+            
+            // Add reroll info to the profile
+            const rerollCount = rerollHistory.length;
+            const rerollReasons = rerollHistory.filter(h => h.rerollReason).map(h => h.rerollReason);
+            let rerollInfoHtml = '';
+            if (rerollCount > 0) {
+                rerollInfoHtml = `
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(245,158,11,0.1); border: 1px solid #f59e0b; border-radius: 8px;">
+                        <div style="color: #f59e0b; font-weight: 800; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;">РЕРОЛЛЫ: ${rerollCount}</div>
+                        <div style="color: #e2e8f0; font-size: 12px; line-height: 1.6;">
+                            ${rerollReasons.length > 0 
+                                ? rerollReasons.map((reason, i) => `<div style="margin-bottom: 4px;"><span style="color:#f59e0b;">${i+1}.</span> ${escapeHtml(reason)}</div>`).join('')
+                                : '<span style="color:#64748b;">Причины не указаны</span>'
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+            // Append to the table wrap or add after it
+            const tableWrap = document.querySelector('.leader-profile-table-wrap');
+            if (tableWrap && rerollInfoHtml) {
+                // Remove existing reroll info if any
+                const existing = tableWrap.parentNode.querySelector('.leader-profile-reroll-info');
+                if (existing) existing.remove();
+                const rerollDiv = document.createElement('div');
+                rerollDiv.className = 'leader-profile-reroll-info';
+                rerollDiv.innerHTML = rerollInfoHtml;
+                tableWrap.parentNode.appendChild(rerollDiv);
+            } else if (tableWrap) {
+                // Remove existing if no rerolls
+                const existing = tableWrap.parentNode.querySelector('.leader-profile-reroll-info');
+                if (existing) existing.remove();
+            }
         }
         
         function copyParticipants() { 
