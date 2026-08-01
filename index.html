@@ -445,6 +445,19 @@
             line-height: 1.35;
             text-align: right;
         }
+        .win-global-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px 0 14px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        .win-global-meta .win-session-note {
+            max-width: none;
+            text-align: left;
+        }
         .middle-split {
             display: flex;
             gap: 15px;
@@ -1366,9 +1379,6 @@
             </div>
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0;">
                 <div id="win-timer-label" style="border: 1px solid var(--accent-neon-blue); padding: 10px 20px; border-radius: 10px; color: var(--accent-neon-blue); text-shadow: none; font-size: 24px; font-family: 'Orbitron';">00:00:00</div>
-                <div id="win-stream-duration" class="win-presence-label">НА СТРИМЕ: 00:00:00</div>
-                <div id="win-message-count" class="win-message-count">СООБЩЕНИЙ: 0</div>
-                <div class="win-session-note">Время начинается с первого сообщения. После F5 время и сообщения текущей сессии сбрасываются.</div>
             </div>
         </div>
     <div class="win-grid" style="display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; flex-grow: 1; margin-top: 20px; overflow: hidden;">
@@ -1378,6 +1388,11 @@
         </div>
         <div id="win-stat-card" class="win-card" style="padding: 20px; border-radius: 20px; display: flex; flex-direction: column; border: 1px solid var(--accent-neon-blue);">
             <h4 style="margin-top:0; color: var(--accent-neon-blue);">История игрока (Global):</h4>
+            <div class="win-global-meta">
+                <div id="win-stream-duration" class="win-presence-label">НА СТРИМЕ: 00:00:00</div>
+                <div id="win-message-count" class="win-message-count">СООБЩЕНИЙ: 0</div>
+                <div class="win-session-note">Время начинается с первого сообщения. После F5 время и сообщения текущей сессии сбрасываются.</div>
+            </div>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
                 <div style="display: flex; gap: 20px;"><div><small>Выигрышей:</small> <div id="win-count-stat" class="editable-stat" onclick="editWinnerCounter('count')" style="font-size: 20px; font-weight: bold;">0</div></div><div><small>Всего вывел:</small> <div id="win-sum-stat" class="editable-stat" onclick="editWinnerCounter('sum')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div></div>
                 <div><small>Всего депозитов:</small> <div id="win-dep-stat" class="editable-stat" onclick="editWinnerCounter('dep')" style="font-size: 20px; font-weight: bold; color: var(--accent-neon-blue);">0 ₽</div></div>
@@ -1441,6 +1456,9 @@
         let autoSpinEnabled = false;
         let wheelParticipants = [];
         let isWheelSpinning = false; // флаг блокировки обновления wheelParticipants во время крута
+        let wheelAnimationFrame = null;
+        let wheelSpinTimeout = null;
+        let wheelSpinToken = 0;
         let pendingParticipants = JSON.parse(localStorage.getItem('bot_pending_participants') || '[]'); // участники, которые написали кодовое пока рулетка открыта
         const wheelColors = ['#0f172a','#1e2937','#334155','#475569','#64748b','#1e3a8a','#312e81','#4338ca','#4c1d95','#6b21a8'];
         let blacklistNicks = JSON.parse(localStorage.getItem('bot_blacklist_nicks') || '["liri1x"]');
@@ -2951,7 +2969,26 @@
             ctx.shadowBlur = 0;
         }
 
+        function stopWheelSpin() {
+            if (wheelAnimationFrame !== null) {
+                cancelAnimationFrame(wheelAnimationFrame);
+                wheelAnimationFrame = null;
+            }
+            if (wheelSpinTimeout !== null) {
+                clearTimeout(wheelSpinTimeout);
+                wheelSpinTimeout = null;
+            }
+            wheelSpinToken += 1;
+            isWheelSpinning = false;
+            autoSpinEnabled = false;
+            const rollButton = document.getElementById('roll-button');
+            if (rollButton) rollButton.disabled = false;
+            const autos = document.getElementById('autoskip-checkbox');
+            if (autos) autos.checked = false;
+        }
+
         function startSpin(mode) {
+            if (isWheelSpinning) return;
             const duration = parseInt(document.getElementById('dur-input').value) * 1000;
             const n = wheelParticipants.length;
             if (n === 0) return;
@@ -2959,6 +2996,7 @@
             
             // Блокируем обновление wheelParticipants извне на время крута
             isWheelSpinning = true;
+            const spinToken = ++wheelSpinToken;
             
             const sliceAngle = (Math.PI * 2) / n;
 
@@ -2980,6 +3018,8 @@
             let startTimestamp = null;
 
             function animate(timestamp) {
+                wheelAnimationFrame = null;
+                if (spinToken !== wheelSpinToken || !isWheelSpinning) return;
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 4);
@@ -2987,9 +3027,11 @@
                 drawWheel(currentAngle);
 
                 if (progress < 1) {
-                    requestAnimationFrame(animate);
+                    wheelAnimationFrame = requestAnimationFrame(animate);
                 } else {
+                    if (spinToken !== wheelSpinToken || !isWheelSpinning) return;
                     drawWheel(endAngle);
+                    wheelAnimationFrame = null;
                     // Разблокируем обновление wheelParticipants после завершения крута
                     isWheelSpinning = false;
                     if (mode === 'normal') {
@@ -2998,7 +3040,9 @@
                             document.getElementById('elim-log').innerText = 'WIN: ' + winner;
                             playTick();
                             document.getElementById('roll-button').disabled = false;
-                            setTimeout(() => {
+                            wheelSpinTimeout = setTimeout(() => {
+                                wheelSpinTimeout = null;
+                                if (spinToken !== wheelSpinToken || document.getElementById('wheel-modal').style.display !== 'flex') return;
                                 startSpin(selectedSpinMode);
                             }, 900);
                         } else {
@@ -3016,13 +3060,17 @@
                         if (wheelParticipants.length === 0) {
                             document.getElementById('roll-button').disabled = false;
                         } else if (wheelParticipants.length === 1) {
-                            setTimeout(() => {
+                            wheelSpinTimeout = setTimeout(() => {
+                                wheelSpinTimeout = null;
+                                if (spinToken !== wheelSpinToken || document.getElementById('wheel-modal').style.display !== 'flex') return;
                                 drawWheel(0);
                                 showWinnerRef(wheelParticipants[0]);
                                 document.getElementById('roll-button').disabled = false;
                             }, 1500);
                         } else {
-                            setTimeout(() => {
+                            wheelSpinTimeout = setTimeout(() => {
+                                wheelSpinTimeout = null;
+                                if (spinToken !== wheelSpinToken || document.getElementById('wheel-modal').style.display !== 'flex') return;
                                 drawWheel(0);
                                 if (duelMode && wheelParticipants.length === 2) {
                                     document.getElementById('wheel-modal').style.display = 'none';
@@ -3047,7 +3095,25 @@
         let duelRolled = [false, false];
         function toggleRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; const open = el.style.opacity === '1'; el.style.opacity = open ? '0' : '1'; el.style.transform = open ? 'translateY(14px)' : 'translateY(0)'; el.style.pointerEvents = open ? 'none' : 'auto'; }
         function hideRollOptions() { const el = document.getElementById('roll-options'); if (!el) return; el.style.opacity = '0'; el.style.transform = 'translateY(14px)'; el.style.pointerEvents = 'none'; }
-        function instantRoll(count) { const arr = getActiveParticipants(); if (arr.length < 1) return alert('Нет участников!'); hideRollOptions(); count = count || 1; if (count >= 2) { if (arr.length < 2) return alert('Нужно минимум 2 участника!'); if (arr.length === 2) { openDuelModal(arr[0], arr[1]); return; } duelMode = true; wheelParticipants = arr.slice(); openWheel(); document.getElementById('wheel-modal').style.display = 'flex'; startSpin('elimination'); } else { showWinnerRef(pickRiggedWinner(arr)); } }
+        function instantRoll(count) {
+            const arr = getActiveParticipants();
+            if (arr.length < 1) return alert('Нет участников!');
+            hideRollOptions();
+            count = count || 1;
+            if (count >= 2) {
+                if (arr.length < 2) return alert('Нужно минимум 2 участника!');
+                const duelPool = arr.slice();
+                const first = duelPool.splice(Math.floor(Math.random() * duelPool.length), 1)[0];
+                const second = duelPool[Math.floor(Math.random() * duelPool.length)];
+                duelMode = false;
+                stopWheelSpin();
+                const wheelModal = document.getElementById('wheel-modal');
+                if (wheelModal) wheelModal.style.display = 'none';
+                openDuelModal(first, second);
+                return;
+            }
+            showWinnerRef(pickRiggedWinner(arr));
+        }
         const DUEL_FACE_PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
         function renderDiceFace(value = 1) {
             const pips = (DUEL_FACE_PIPS[value] || DUEL_FACE_PIPS[1])
@@ -3143,8 +3209,9 @@
                 processPendingParticipants();
             }
             
-            // Разблокируем wheelParticipants при закрытии рулетки
-            isWheelSpinning = false;
+            // Полностью останавливаем рулетку и её отложенные переходы при выходе.
+            stopWheelSpin();
+            duelMode = false;
             
             document.querySelectorAll('.modal').forEach(m => {
                 m.style.display = 'none';
@@ -3153,10 +3220,6 @@
             winTimerActive = false; 
             clearInterval(window.winInt);
             clearInterval(window.winPresenceInt);
-            // Останавливаем автокрут при закрытии окна рулетки
-            autoSpinEnabled = false;
-            const autos = document.getElementById('autoskip-checkbox');
-            if (autos) autos.checked = false;
         }
         async function resetAll() { 
             if(confirm('ПОЛНЫЙ СБРОС УЧАСТНИКОВ?')) { 
