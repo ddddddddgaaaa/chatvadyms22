@@ -364,6 +364,92 @@
             border-left-color: var(--accent-neon-blue);
             background: var(--accent-soft-bg);
         }
+        .leaderboard-table-wrap {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            border: 1px solid var(--accent-soft-border);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.015);
+        }
+        .leader-summary-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 5px;
+            table-layout: fixed;
+            font-size: 11px;
+        }
+        .leader-summary-table th {
+            padding: 8px 6px 6px;
+            color: var(--accent-neon-blue);
+            font-size: 10px;
+            letter-spacing: 0.06em;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .leader-summary-table th:first-child {
+            text-align: left;
+        }
+        .leader-summary-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--accent-neon-blue);
+        }
+        .leader-summary-row {
+            cursor: pointer;
+            outline: none;
+        }
+        .leader-summary-row td {
+            padding: 9px 6px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--accent-soft-border);
+            border-bottom: 1px solid var(--accent-soft-border);
+            text-align: right;
+            white-space: nowrap;
+        }
+        .leader-summary-row td:first-child {
+            border-left: 3px solid var(--accent-neon-blue);
+            border-radius: 9px 0 0 9px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 700;
+            text-align: left;
+        }
+        .leader-summary-row td:last-child {
+            border-radius: 0 9px 9px 0;
+        }
+        .leader-summary-row:hover td,
+        .leader-summary-row:focus-visible td {
+            background: var(--accent-soft-bg);
+            border-top-color: var(--accent-neon-blue);
+            border-bottom-color: var(--accent-neon-blue);
+        }
+        .leader-summary-deposit {
+            color: var(--soft-light);
+        }
+        .leader-summary-withdrawal {
+            color: var(--accent-neon-blue);
+            font-weight: 800;
+        }
+        .leader-summary-table tfoot th,
+        .leader-summary-table tfoot td {
+            padding: 10px 6px 8px;
+            border-top: 2px solid var(--accent-neon-blue);
+            color: var(--accent-neon-blue);
+            font-weight: 800;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .leader-summary-table tfoot th {
+            text-align: left;
+        }
+        .leaderboard-empty {
+            padding: 18px 8px !important;
+            color: #94a3b8;
+            text-align: center !important;
+        }
         .part-chip {
             font-size: 11px;
             background: var(--accent-soft-bg);
@@ -1316,7 +1402,17 @@
         </div>
         <div class="panel panel-with-bg">
             <h3 style="margin:0 0 15px 0; color: var(--accent-neon-blue); text-shadow: none;">ТОП (ВЫВОДЫ)</h3>
-            <div id="leaderboard" style="overflow-y:auto; flex-grow: 1;"></div>
+            <div class="leaderboard-table-wrap">
+                <table class="leader-summary-table" aria-label="Топ участников по выводам">
+                    <thead>
+                        <tr><th scope="col">НИК</th><th scope="col">ДЕП</th><th scope="col">ВЫВОД</th></tr>
+                    </thead>
+                    <tbody id="leaderboard"></tbody>
+                    <tfoot>
+                        <tr><th scope="row" colspan="1">ИТОГО</th><td id="leaderboard-total-deposit">0 ₽</td><td id="leaderboard-total-withdrawal">0 ₽</td></tr>
+                    </tfoot>
+                </table>
+            </div>
             <div onclick="openAdminLogin()" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:160px; height:22px; cursor:default; z-index:10000; background:transparent; border:none; outline:none;"></div>
         </div>
     </div>
@@ -1894,7 +1990,7 @@
                     }
                     if (Array.isArray(data.globalHistory)) {
                         globalHistory = data.globalHistory;
-                        saveToStorage();
+                        renderLeaderboard();
                     }
                     if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
                 });
@@ -2268,13 +2364,29 @@
         }
         function renderLeaderboard() {
             recalculateLeadersFromHistory();
-            leaders.sort((a,b) => b.amount - a.amount);
+            leaders.sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
             const container = document.getElementById('leaderboard');
+            const totalDepositEl = document.getElementById('leaderboard-total-deposit');
+            const totalWithdrawalEl = document.getElementById('leaderboard-total-withdrawal');
+            if (!container) return;
             container.innerHTML = '';
-            container.style.maxHeight = leaders.length > 10 ? '520px' : 'none';
+
+            let totalDeposits = 0;
+            let totalWithdrawals = 0;
             leaders.forEach((item, i) => {
-                container.innerHTML += `<div class="leader-item" onclick="openLeaderEditModal('${item.name.replace(/'/g, "\\'")}')" style="cursor:pointer;"><div class="leader-row" style="display:flex; justify-content:space-between; align-items:center;"><span><b>${i+1}.</b> ${item.name}</span><div><b style="color:${getColorForSum(item.amount)};">${item.amount.toLocaleString()} ₽</b></div></div></div>`;
+                const deposit = Number(item.deposits) || 0;
+                const withdrawal = Number(item.amount) || 0;
+                const safeName = escapeHtml(item.name || '---');
+                const editName = String(item.name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                totalDeposits += deposit;
+                totalWithdrawals += withdrawal;
+                container.innerHTML += `<tr class="leader-summary-row" tabindex="0" role="button" aria-label="Открыть статистику ${safeName}" onclick="openLeaderEditModal('${editName}')" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openLeaderEditModal('${editName}'); }"><td title="${safeName}">${safeName}</td><td class="leader-summary-deposit">${deposit.toLocaleString()} ₽</td><td class="leader-summary-withdrawal">${withdrawal.toLocaleString()} ₽</td></tr>`;
             });
+            if (!leaders.length) {
+                container.innerHTML = '<tr><td class="leaderboard-empty" colspan="3">Пока нет записей</td></tr>';
+            }
+            if (totalDepositEl) totalDepositEl.innerText = totalDeposits.toLocaleString() + ' ₽';
+            if (totalWithdrawalEl) totalWithdrawalEl.innerText = totalWithdrawals.toLocaleString() + ' ₽';
             saveToStorage();
         }
         
