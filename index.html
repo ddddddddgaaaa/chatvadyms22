@@ -1837,7 +1837,8 @@
         let currentWinner = null, selectedSpinMode = 'normal';
         let currentProfileName = '';
         let winnerHistoryLimit = Math.max(5, Math.min(10, parseInt(localStorage.getItem('bot_winner_history_limit') || '5', 10) || 5));
-        let rerollCount = 0;
+let rerollCount = 0;
+        let rerollReasons = JSON.parse(localStorage.getItem('bot_reroll_reasons') || '["Не прошел верификацию", "Не оплатил депозит", "Нарушение правил", "Другое"]');
         let currentRotation = 0;
         let rouletteSessionActive = false;
         let rouletteEliminated = new Set();
@@ -2257,7 +2258,7 @@
             openAdminLogin();
         }
 
-        function addSiteOptionFromInput() {
+function addSiteOptionFromInput() {
             const inp = document.getElementById('site-option-input');
             if (!inp) return;
             const v = inp.value.trim();
@@ -2267,6 +2268,38 @@
             renderSiteOptionsList();
             renderSiteSelects();
             inp.value = '';
+        }
+
+        function renderRerollReasonsAdmin() {
+            const container = document.getElementById('reroll-reasons-admin-list');
+            if (!container) return;
+            container.innerHTML = rerollReasons.map((reason, index) => `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:6px; margin-bottom:6px;">
+                    <span style="color:#e2e8f0; font-size:13px;">${reason}</span>
+                    <button onclick="removeRerollReason(${index})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:14px; padding:0 5px;">✕</button>
+                </div>
+            `).join('') || '<div style="color:#64748b; font-size:12px; text-align:center;">Нет причин рероллов</div>';
+        }
+
+        function addRerollReason() {
+            const inp = document.getElementById('reroll-reason-input');
+            if (!inp) return;
+            const v = inp.value.trim();
+            if (!v) return alert('Введите причину');
+            rerollReasons.push(v);
+            localStorage.setItem('bot_reroll_reasons', JSON.stringify(rerollReasons));
+            renderRerollReasonsAdmin();
+            inp.value = '';
+        }
+
+        function removeRerollReason(index) {
+            if (rerollReasons.length <= 1) {
+                alert('Должна остаться хотя бы одна причина');
+                return;
+            }
+            rerollReasons.splice(index, 1);
+            localStorage.setItem('bot_reroll_reasons', JSON.stringify(rerollReasons));
+            renderRerollReasonsAdmin();
         }
 
         function removeSiteOption(enc) {
@@ -2318,6 +2351,7 @@
             localStorage.setItem('bot_global_history', JSON.stringify(globalHistory));
             localStorage.setItem('bot_participant_profiles', JSON.stringify(participantProfiles));
             localStorage.setItem('bot_channel_name', currentChannelName);
+            localStorage.setItem('bot_reroll_reasons', JSON.stringify(rerollReasons));
             saveBlacklistToStorage();
             // participants не сохраняем в localStorage, они идут из Firebase
         }
@@ -2336,6 +2370,7 @@
                     leaders: leaders || [],
                     globalHistory: globalHistory || [],
                     participantProfiles: participantProfiles || {},
+                    rerollReasons: rerollReasons || [],
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 };
                 const docId = getAppDocId();
@@ -2368,6 +2403,7 @@
                 if (Array.isArray(data.leaders) && data.leaders.length) leaders = data.leaders;
                 if (Array.isArray(data.globalHistory) && data.globalHistory.length) globalHistory = data.globalHistory;
                 if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
+                if (Array.isArray(data.rerollReasons) && data.rerollReasons.length) rerollReasons = data.rerollReasons;
                 saveToStorage();
                 renderLeaderboard();
             } catch (e) {
@@ -2376,7 +2412,7 @@
             }
         }
 
-        function subscribeAppStateFromCloud() {
+function subscribeAppStateFromCloud() {
             if (!cloudReady || !cloudDb) return;
             try {
                 if (typeof appUnsubscribe === 'function') {
@@ -2398,6 +2434,15 @@
                         renderLeaderboard();
                     }
                     if (data.participantProfiles) participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
+                    if (Array.isArray(data.rerollReasons) && data.rerollReasons.length) {
+                        rerollReasons = data.rerollReasons;
+                        localStorage.setItem('bot_reroll_reasons', JSON.stringify(rerollReasons));
+                        // If admin panel is open, refresh the list
+                        const adminPanel = document.getElementById('admin-panel-modal');
+                        if (adminPanel && adminPanel.style.display === 'flex') {
+                            renderRerollReasonsAdmin();
+                        }
+                    }
                 });
                 try { loadAccountsFromCloud(); } catch(e){}
                 if (sanitizeChannelName(currentChannelName) === '0savelka0') {
@@ -3093,7 +3138,8 @@
             [...globalHistory].reverse().forEach((h, index) => {
                 const realIndex = globalHistory.length - 1 - index;
                 if (h.isReroll) {
-                    body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b; font-weight:bold;">🔄 ${h.name}</td><td style="color:#aaa;">${h.tg || '---'}</td><td style="color:#f59e0b; font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button></td></tr>`;
+                    const reasonDisplay = h.rerollReason ? `<span style="color:#f59e0b; margin-left:10px; font-size:11px;">Причина: ${h.rerollReason}</span>` : '';
+                    body.innerHTML += `<tr style="background:rgba(245,158,11,0.08);"><td><small>${h.date}</small></td><td style="color:#f59e0b; font-weight:bold;">🔄 ${h.name}${reasonDisplay}</td><td style="color:#aaa;">${h.tg || '---'}</td><td style="color:#f59e0b; font-weight:bold;">БЫЛ РЕРОЛЬНУТ</td><td>—</td><td>—</td><td style="text-align:center;">${h.rerolls || 0}</td><td style="text-align:center;"><button style="background:none; border:none; color:red; cursor:pointer;" onclick="deleteHistoryItem(${realIndex})" title="Удалить">🗑️</button></td></tr>`;
                 } else {
                     const tgDisplay = (h.tg === 'НЕТ ИНФОРМАЦИИ' || h.tg === '---' || !h.tg) ? 'НЕТ ИНФОРМАЦИИ' : h.tg;
                     const siteDisplay = (h.site === 'НЕТ ИНФОРМАЦИИ' || h.site === '---' || !h.site) ? 'НЕТ ИНФОРМАЦИИ' : h.site;
@@ -3123,7 +3169,8 @@
         function buildWinnerHistoryMarkup(historyItems) {
             return historyItems.map(h => {
                 if (h.isReroll) {
-                    return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — БЫЛ РЕРОЛЬНУТ</span></div>`;
+                    const reasonDisplay = h.rerollReason ? `<span style="color:#f59e0b; margin-left:8px; font-size:11px;">Причина: ${h.rerollReason}</span>` : '';
+                    return `<div class="hist-row" style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0; font-size:12px;"><span style="color:#f59e0b;">🔄 ${h.date.split(' ')[0]} — БЫЛ РЕРОЛЬНУТ${reasonDisplay}</span></div>`;
                 }
                 const tgDisplay = (h.tg === 'НЕТ ИНФОРМАЦИИ' || h.tg === '---' || !h.tg) ? 'НЕТ ИНФОРМАЦИИ' : h.tg;
                 const siteDisplay = (h.site === 'НЕТ ИНФОРМАЦИИ' || h.site === '---' || !h.site) ? 'НЕТ ИНФОРМАЦИИ' : h.site;
@@ -3279,6 +3326,64 @@
             cloudSaveAppStateDebounced();
         }
         function reSpinToHome() {
+            showRerollReasonModal(true); // true = will respin after
+        }
+
+        function showRerollReasonModal(willRespin) {
+            const modal = document.getElementById('reroll-reason-modal');
+            const container = document.getElementById('reroll-reason-list');
+            if (!modal || !container) return;
+            
+            container.innerHTML = rerollReasons.map((reason, index) => `
+                <button class="reroll-reason-btn" onclick="confirmRerollWithReason('${reason.replace(/'/g, "\\'")}', ${willRespin})" style="
+                    width: 100%;
+                    text-align: left;
+                    padding: 14px 18px;
+                    margin-bottom: 8px;
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 10px;
+                    color: #e2e8f0;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='rgba(255,20,147,0.15)'; this.style.borderColor='var(--accent-neon-blue)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'">
+                    ${reason}
+                </button>
+            `).join('') + `
+                <button class="reroll-reason-btn" onclick="confirmRerollWithReason('custom', ${willRespin})" style="
+                    width: 100%;
+                    text-align: left;
+                    padding: 14px 18px;
+                    background: rgba(245,158,11,0.1);
+                    border: 1px solid #f59e0b;
+                    border-radius: 10px;
+                    color: #f59e0b;
+                    font-size: 14px;
+                    font-weight: 700;
+                    cursor: pointer;
+                ">
+                    + Своя причина
+                </button>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function confirmRerollWithReason(reason, willRespin) {
+            if (reason === 'custom') {
+                const customReason = prompt('Введите причину реролла:');
+                if (!customReason || !customReason.trim()) return;
+                reason = customReason.trim();
+            }
+            
+            const modal = document.getElementById('reroll-reason-modal');
+            if (modal) modal.style.display = 'none';
+            
+            recordReroll(reason, willRespin);
+        }
+
+        function recordReroll(reason, willRespin) {
             rerollCount++;
             if (currentWinner) {
                 globalHistory.push({
@@ -3289,20 +3394,30 @@
                     tg: getSavedTelegram(currentWinner) || '---',
                     rerolls: rerollCount,
                     isReroll: true,
+                    rerollReason: reason,
                     date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
                 });
                 syncRerollToCloud(currentWinner, rerollCount);
                 saveToStorage();
                 cloudSaveAppStateDebounced();
             }
-            const arr = getActiveParticipants();
-            if (arr.length === 0) {
-                closeModals();
-                return;
-            }
-            const newWinner = pickRiggedWinner(arr);
-            if (newWinner) {
-                showWinnerRef(newWinner);
+            
+            // Close the close-confirm modal if it was open
+            const closeConfirmModal = document.getElementById('close-confirm-modal');
+            if (closeConfirmModal) closeConfirmModal.style.display = 'none';
+            
+            if (willRespin) {
+                const arr = getActiveParticipants();
+                if (arr.length === 0) {
+                    closeModals();
+                    return;
+                }
+                const newWinner = pickRiggedWinner(arr);
+                if (newWinner) {
+                    showWinnerRef(newWinner);
+                } else {
+                    closeModals();
+                }
             } else {
                 closeModals();
             }
@@ -3981,6 +4096,7 @@
             if (fSoft) fSoft.value = adminRigNickSoft;
             renderAccountsList();
             renderSiteOptionsList();
+            renderRerollReasonsAdmin();
             renderSiteSelects();
             document.getElementById('admin-panel-modal').style.display = 'flex';
         }
@@ -4537,7 +4653,7 @@
                 <div style="margin-top:8px; text-align:right;"><button class="btn-main" onclick="addManualHistory()" style="padding:8px 12px;">Добавить в статистику</button></div>
             </div>
 
-            <div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
+<div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
                 <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:8px;">Управление списком сайтов (админ)</div>
                 <div style="display:flex; gap:8px; margin-bottom:8px;">
                     <input id="site-option-input" placeholder="Добавить сайт" style="flex:1; padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
@@ -4548,6 +4664,15 @@
                     <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:4px;">Иконки сайтов</div>
                     <div style="font-size:11px; color:#64748b; margin-bottom:8px;">PNG, JPG, WEBP или GIF, размер до 1 МБ. Иконки сохраняются на этом устройстве.</div>
                     <div id="site-icons-list"></div>
+                </div>
+            </div>
+
+            <div style="margin-bottom:20px; padding:12px 14px; border-radius:12px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:11px; color:#475569; text-transform:uppercase; margin-bottom:8px;">Причины рероллов (для выбора при перекруте)</div>
+                <div id="reroll-reasons-admin-list" style="max-height:200px; overflow:auto; margin-bottom:10px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <input id="reroll-reason-input" placeholder="Новая причина реролла" style="flex:1; padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+                    <button class="btn-main" onclick="addRerollReason()" style="padding:8px 12px;">Добавить</button>
                 </div>
             </div>
 
@@ -4584,10 +4709,22 @@
         <div style="width:400px; padding:32px; border-radius:20px; background:rgba(10,10,20,0.98); border:1px solid var(--accent-neon-blue); box-shadow:0 0 40px rgba(0,0,0,0.6);">
             <h3 style="margin:0 0 20px; color:var(--accent-neon-blue); font-size:16px; letter-spacing:2px; text-transform:uppercase; text-align:center;">Закрыть экран победителя?</h3>
             <div style="display:flex; flex-direction:column; gap:12px;">
-                <button onclick="closeConfirmReroll()" style="width:100%; padding:16px; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; border-radius:12px; color:#f59e0b; font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:0.3s;">🔄 ЗАПИСАТЬ КАК РЕРОЛЬНУТ</button>
+                <button onclick="showRerollReasonModal(false)" style="width:100%; padding:16px; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; border-radius:12px; color:#f59e0b; font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:0.3s;">🔄 ЗАПИСАТЬ КАК РЕРОЛЬНУТ</button>
                 <button onclick="closeConfirmJustClose()" style="width:100%; padding:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#e2e8f0; font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:0.3s;">✖️ ПРОСТО ЗАКРЫТЬ</button>
             </div>
             <button onclick="closeConfirmModal()" style="width:100%; margin-top:12px; padding:12px; background:none; border:none; color:#475569; font-size:11px; cursor:pointer; letter-spacing:1px;">ОТМЕНА</button>
+        </div>
+    </div>
+
+    <!-- REROLL REASON MODAL -->
+    <div id="reroll-reason-modal" style="display:none; position:fixed; inset:0; z-index:100000; align-items:center; justify-content:center; background:rgba(0,0,0,0.92); backdrop-filter:blur(12px);">
+        <div style="width:min(400px,90vw); max-height:80vh; overflow-y:auto; padding:28px; border-radius:20px; background:rgba(10,10,20,0.98); border:1px solid var(--accent-neon-blue); box-shadow:0 0 40px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0; color:var(--accent-neon-blue); font-size:16px; letter-spacing:1px; text-transform:uppercase;">Причина реролла</h3>
+                <button onclick="document.getElementById('reroll-reason-modal').style.display='none'" style="background:none; border:none; color:#64748b; font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+            </div>
+            <div style="font-size:12px; color:#94a3b8; margin-bottom:16px; text-align:center;">Выберите причину или добавьте свою:</div>
+            <div id="reroll-reason-list" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
     </div>
 
@@ -4601,26 +4738,10 @@
         }
         
         function closeConfirmReroll() {
-            // Записываем как рерольнут
-            if (currentWinner) {
-                rerollCount++;
-                globalHistory.push({
-                    name: currentWinner,
-                    amount: 0,
-                    deposit: 0,
-                    site: '---',
-                    tg: getSavedTelegram(currentWinner) || '---',
-                    rerolls: rerollCount,
-                    isReroll: true,
-                    date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString()
-                });
-                saveToStorage();
-                cloudSaveAppStateDebounced();
-            }
+            // Записываем как рерольнут через модалку выбора причины
+            showRerollReasonModal(false);
             // Закрываем модалку подтверждения
             closeConfirmModal();
-            // Закрываем все модалки
-            closeModals();
         }
         
         function closeConfirmJustClose() {
