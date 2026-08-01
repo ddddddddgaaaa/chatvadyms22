@@ -1838,7 +1838,7 @@
         let currentProfileName = '';
         let winnerHistoryLimit = Math.max(5, Math.min(10, parseInt(localStorage.getItem('bot_winner_history_limit') || '5', 10) || 5));
 let rerollCount = 0;
-        let rerollReasons = JSON.parse(localStorage.getItem('bot_reroll_reasons') || '["Не прошел верификацию", "Не оплатил депозит", "Нарушение правил", "Другое"]');
+        let rerollReasons = JSON.parse(localStorage.getItem('bot_reroll_reasons') || '["Мульти ак", "Твинк", "Мало сообщений", "Мало сидит на стримах"]');
         let currentRotation = 0;
         let rouletteSessionActive = false;
         let rouletteEliminated = new Set();
