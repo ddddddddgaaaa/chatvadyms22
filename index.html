@@ -432,6 +432,19 @@
             letter-spacing: 0.04em;
             white-space: nowrap;
         }
+        .win-message-count {
+            color: var(--accent-neon-blue);
+            font: 800 11px/1.2 'Orbitron', monospace;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        .win-session-note {
+            max-width: 230px;
+            color: #94a3b8;
+            font-size: 10px;
+            line-height: 1.35;
+            text-align: right;
+        }
         .middle-split {
             display: flex;
             gap: 15px;
@@ -1089,6 +1102,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            perspective: 700px;
+            perspective-origin: center;
         }
         .dice-2d {
             width: 132px;
@@ -1390,6 +1405,8 @@
             <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0;">
                 <div id="win-timer-label" style="border: 1px solid var(--accent-neon-blue); padding: 10px 20px; border-radius: 10px; color: var(--accent-neon-blue); text-shadow: none; font-size: 24px; font-family: 'Orbitron';">00:00:00</div>
                 <div id="win-stream-duration" class="win-presence-label">НА СТРИМЕ: 00:00:00</div>
+                <div id="win-message-count" class="win-message-count">СООБЩЕНИЙ: 0</div>
+                <div class="win-session-note">Время начинается с первого сообщения. После F5 время и сообщения текущей сессии сбрасываются.</div>
             </div>
         </div>
     <div class="win-grid" style="display: grid; grid-template-columns: 1fr 1fr 380px; gap: 20px; flex-grow: 1; margin-top: 20px; overflow: hidden;">
@@ -2189,6 +2206,9 @@
 
                 if (!userMessages[user]) userMessages[user] = [];
                 userMessages[user].push({ time, text: msg });
+                if (currentWinner && viewerKey === currentWinner.trim().toLowerCase()) {
+                    updateWinnerMessageCount();
+                }
 
                 if (normalizedMessage === normalizedCodeword) {
                     addParticipantToFirebase(user);
@@ -2328,6 +2348,16 @@
             const key = currentWinner.trim().toLowerCase();
             const firstSeenAt = viewerFirstSeenAt.get(key) || winnerShownAt || Date.now();
             label.innerText = 'НА СТРИМЕ: ' + formatElapsedDuration(Date.now() - firstSeenAt);
+        }
+        function getUserMessageCount(name) {
+            const key = String(name || '').trim().toLowerCase();
+            return Object.entries(userMessages).reduce((total, [user, messages]) => {
+                return total + (user.trim().toLowerCase() === key ? messages.length : 0);
+            }, 0);
+        }
+        function updateWinnerMessageCount() {
+            const label = document.getElementById('win-message-count');
+            if (label && currentWinner) label.innerText = 'СООБЩЕНИЙ: ' + getUserMessageCount(currentWinner);
         }
         function toggleTimer() { timerRunning = !timerRunning; if(audioCtx.state === 'suspended') audioCtx.resume(); }
         function adjustTimer(delta) {
@@ -2621,6 +2651,8 @@
             const winSite = document.getElementById('win-site-select'); if (winSite) winSite.value = '---';
             document.getElementById('winner-screen').style.display = 'flex';
             updateWinnerStreamDuration();
+            const messageCountLabel = document.getElementById('win-message-count');
+            if (messageCountLabel) messageCountLabel.innerText = 'СООБЩЕНИЙ: ' + getUserMessageCount(name);
             const hCont = document.getElementById('win-chat-history');
             hCont.innerHTML = (userMessages[name] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
             let s = 0;
@@ -3094,12 +3126,13 @@
             const [frx, fry] = DUEL_DICE_ROT[target];
             cube.style.setProperty('--rx', (frx - 25) + 'deg');
             cube.style.setProperty('--ry', (fry + 45) + 'deg');
-            cube.classList.remove('dice-landed');
+            cube.classList.remove('is-landed');
+            void cube.offsetWidth;
             cube.classList.add('is-rolling');
             setTimeout(() => {
                 cube.classList.remove('is-rolling');
-                cube.classList.add('dice-landed');
-                setTimeout(() => { cube.classList.remove('dice-landed'); }, 400);
+                cube.classList.add('is-landed');
+                setTimeout(() => { cube.classList.remove('is-landed'); }, 420);
                 duelResults[idx] = target;
                 duelRolled[idx] = true;
                 duelRolling = false;
