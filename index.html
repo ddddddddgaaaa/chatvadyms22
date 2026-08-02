@@ -1769,6 +1769,21 @@
             </div>
         </div>
     </div>
+    <div id="login-modal" class="auth-modal" style="display: flex;">
+        <div class="auth-card">
+            <h2>Авторизация</h2>
+            <p>Введите логин и пароль для доступа к боту.</p>
+            <div class="auth-form">
+                <input type="text" id="login-username" placeholder="Логин" autocomplete="username">
+                <input type="password" id="login-password" placeholder="Пароль" autocomplete="current-password">
+                <div id="login-error" style="color: #ef4444; font-size: 12px; min-height: 16px; display: none;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-main btn-purple" type="button" onclick="handleLogin()">ВОЙТИ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="auth-modal" class="auth-modal">
         <div class="auth-card">
             <h2>Вход</h2>
@@ -2706,6 +2721,23 @@ function subscribeAppStateFromCloud() {
         }
         function closeAuthModal() {
             document.getElementById('auth-modal').style.display = 'none';
+        }
+        function handleLogin() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            
+            if (username === 'amil' && password === 'a1b2') {
+                document.getElementById('login-modal').style.display = 'none';
+                openAuthModal();
+            } else {
+                errorEl.textContent = 'Неверный логин или пароль';
+                errorEl.style.display = 'block';
+                document.getElementById('login-password').value = '';
+            }
+        }
+        function closeLoginModal() {
+            document.getElementById('login-modal').style.display = 'none';
         }
         function connectTwitchSocket() {
             if (!currentChannelName) return;
@@ -4009,6 +4041,12 @@ function subscribeAppStateFromCloud() {
         document.getElementById('auth-channel-input').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') applyAuthSettings();
         });
+        document.getElementById('login-username').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') document.getElementById('login-password').focus();
+        });
+        document.getElementById('login-password').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') handleLogin();
+        });
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && document.getElementById('leader-profile-modal')?.style.display === 'flex') {
                 closeLeaderProfile();
@@ -4033,11 +4071,9 @@ function subscribeAppStateFromCloud() {
         setImportFormat('csv');
         applyTheme(localStorage.getItem('bot_theme_name') || 'pink');
         updateChannelUi();
-        if (currentChannelName) {
-            initTwitchEmbed();
-            connectTwitchSocket();
-        }
-        // openAuthModal(); // Отключено - не показывать окно входа автоматически
+        // Show login modal on page load
+        document.getElementById('login-modal').style.display = 'flex';
+        document.getElementById('login-username').focus();
 
         // ============================================================
         // ADMIN PANEL (rig)
