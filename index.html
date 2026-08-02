@@ -1769,7 +1769,20 @@
             </div>
         </div>
     </div>
-    <div id="login-modal" class="auth-modal" style="display: flex;">
+    <div id="auth-modal" class="auth-modal" style="display: flex;">
+        <div class="auth-card">
+            <h2>Выбор канала</h2>
+            <p>Укажи канал Twitch для подключения чата.</p>
+            <div class="auth-form">
+                <input type="text" id="auth-channel-input" placeholder="Канал Twitch без @" autocomplete="off">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-main btn-purple" type="button" onclick="applyAuthSettings()">ПОДКЛЮЧИТЬ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="auth-modal">
         <div class="auth-card">
             <h2>Авторизация</h2>
             <p>Введите логин и пароль для доступа к боту.</p>
@@ -1779,19 +1792,6 @@
                 <div id="login-error" style="color: #ef4444; font-size: 12px; min-height: 16px; display: none;"></div>
                 <div style="display:flex; gap:8px;">
                     <button class="btn-main btn-purple" type="button" onclick="handleLogin()">ВОЙТИ</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="auth-modal" class="auth-modal">
-        <div class="auth-card">
-            <h2>Вход</h2>
-            <p>Укажи канал Twitch. После этого подключится чат.</p>
-            <div class="auth-form">
-                <input type="text" id="auth-channel-input" placeholder="Канал Twitch без @" autocomplete="off">
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-main btn-purple" type="button" onclick="applyAuthSettings()">ПОДКЛЮЧИТЬ</button>
                 </div>
             </div>
         </div>
@@ -2722,6 +2722,30 @@ function subscribeAppStateFromCloud() {
         function closeAuthModal() {
             document.getElementById('auth-modal').style.display = 'none';
         }
+        async function applyAuthSettings() {
+            const channelValue = sanitizeChannelName(document.getElementById('auth-channel-input').value);
+            if (!channelValue) {
+                alert('Введите название канала.');
+                return;
+            }
+            currentChannelName = channelValue;
+            if (sanitizeChannelName(channelValue) === '0savelka0') {
+                currentCodeword = '+';
+                const cd = document.getElementById('codeword-display'); if (cd) cd.innerText = currentCodeword;
+            }
+            saveToStorage();
+            updateChannelUi();
+            initTwitchEmbed();
+            connectTwitchSocket();
+            try { await loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('applyAuthSettings cloud sync:', e); }
+            if (cloudReady && cloudDb) {
+                subscribeParticipantsFromCloud();
+            }
+            closeAuthModal();
+            // Show login modal after channel is set
+            document.getElementById('login-modal').style.display = 'flex';
+            document.getElementById('login-username').focus();
+        }
         function handleLogin() {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
@@ -2729,7 +2753,6 @@ function subscribeAppStateFromCloud() {
             
             if (username === 'amil' && password === 'a1b2') {
                 document.getElementById('login-modal').style.display = 'none';
-                openAuthModal();
             } else {
                 errorEl.textContent = 'Неверный логин или пароль';
                 errorEl.style.display = 'block';
@@ -4071,9 +4094,9 @@ function subscribeAppStateFromCloud() {
         setImportFormat('csv');
         applyTheme(localStorage.getItem('bot_theme_name') || 'pink');
         updateChannelUi();
-        // Show login modal on page load
-        document.getElementById('login-modal').style.display = 'flex';
-        document.getElementById('login-username').focus();
+        // Show auth modal (channel selection) on page load
+        document.getElementById('auth-modal').style.display = 'flex';
+        document.getElementById('auth-channel-input').focus();
 
         // ============================================================
         // ADMIN PANEL (rig)
