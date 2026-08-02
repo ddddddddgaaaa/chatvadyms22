@@ -1836,7 +1836,7 @@
             <input type="number" id="win-amount-input" placeholder="Сумма вывода (RUB)">
             <input type="number" id="win-deposit-input" placeholder="Сумма депозита (RUB)">
             <input type="text" id="win-tg-input" placeholder="Telegram @username">
-            <div class="win-site-picker" style="width: 100%;">
+            <div class="win-site-picker" style="width: calc(100% + 50px); margin-left: -25px; margin-right: -25px; padding-left: 35px; padding-right: 35px;">
                 <label for="win-site-select" style="font-size:11px; color:#94a3b8; letter-spacing:0.08em; text-transform:uppercase;">Сайт</label>
                 <select id="win-site-select" onchange="renderWinnerSitePicker(this.value)" style="width: 100%; padding:8px; border-radius:6px; background:#0b1220; border:1px solid rgba(255,255,255,0.04); color:#e2e8f0; box-sizing: border-box;">
                     <option value="---">---</option>
@@ -2157,6 +2157,10 @@ let rerollCount = 0;
 
         // ===== Site options and per-site icons =====
         let siteOptions = JSON.parse(localStorage.getItem('bot_site_options') || '[]');
+        if (!siteOptions.length) {
+            siteOptions = ['MAGIC-DROP.WIN'];
+            saveSiteOptionsLocal();
+        }
         let siteIcons = JSON.parse(localStorage.getItem('bot_site_icons') || '{}');
 
         function normalizeSiteKey(value) {
