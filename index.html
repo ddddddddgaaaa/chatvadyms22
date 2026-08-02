@@ -2524,31 +2524,22 @@ function subscribeAppStateFromCloud() {
         }
 
         async function addParticipantToFirebase(name) {
-            // Если рулетка открыта, добавляем в ожидающие и сразу в основной список
+            // Если рулетка открыта в режиме выбывания, добавляем в очередь ожидания
             const wheelModal = document.getElementById('wheel-modal');
-            if (wheelModal && wheelModal.style.display === 'flex') {
-                if (selectedSpinMode === 'elimination') {
-                    if (!pendingParticipants.includes(name)) {
-                        pendingParticipants.push(name);
-                        try { localStorage.setItem('bot_pending_participants', JSON.stringify(pendingParticipants)); } catch(e) {}
-                        console.log('Participant queued until elimination roulette closes:', name, pendingParticipants);
-                    }
-                    return;
-                }
+            const isEliminationOpen = wheelModal && wheelModal.style.display === 'flex' && selectedSpinMode === 'elimination';
+            
+            if (isEliminationOpen) {
                 if (!pendingParticipants.includes(name)) {
                     pendingParticipants.push(name);
-                    // Сохраняем pendingParticipants в localStorage
                     try { localStorage.setItem('bot_pending_participants', JSON.stringify(pendingParticipants)); } catch(e) {}
-                    console.log('Participant added to pending list:', name, pendingParticipants);
+                    console.log('Participant queued until elimination roulette closes:', name, pendingParticipants);
                 }
-                // Всегда добавляем в основной список сразу (чтобы сохранить после перезагрузки)
             }
             
-            // Добавляем в основной список участников
+            // Добавляем в основной список участников (всегда)
             if (!cloudReady || !cloudDb) {
                 participants.add(name);
                 syncParticipantsState();
-                // Сохраняем в localStorage для локального режима
                 try { localStorage.setItem('bot_participants_local', JSON.stringify(Array.from(participants))); } catch(e) {}
                 return;
             }
@@ -2558,7 +2549,6 @@ function subscribeAppStateFromCloud() {
                     list: firebase.firestore.FieldValue.arrayUnion(name)
                 });
             } catch (e) {
-                // если документа нет, создадим
                 await cloudDb.collection('participants').doc(docId).set({ list: [name] }, { merge: true });
             }
         }
@@ -2567,13 +2557,10 @@ function subscribeAppStateFromCloud() {
         async function processPendingParticipants() {
             if (pendingParticipants.length === 0) return;
             
-            console.log('Processing pending participants:', pendingParticipants);
+            console.log('Clearing pending participants:', pendingParticipants);
             
-            const participantsToAdd = [...pendingParticipants];
             pendingParticipants = [];
             try { localStorage.removeItem('bot_pending_participants'); } catch(e) {}
-            await updateParticipantsInFirebase(participantsToAdd, false);
-            syncParticipantsState();
         }
 
         async function removeParticipantFromFirebase(name) {
@@ -2624,7 +2611,10 @@ function subscribeAppStateFromCloud() {
             updateFullParticipantsList();
             // Не перезаписываем текущую сессию рулетки списком из чата.
             // Это сохраняет выбывших вне колеса до явного сброса/новой сессии.
-            if (!isWheelSpinning) {
+            const wheelModal = document.getElementById('wheel-modal');
+            const isWheelOpen = wheelModal && wheelModal.style.display === 'flex';
+            
+            if (!isWheelSpinning && !isWheelOpen) {
                 if (!rouletteSessionActive) {
                     wheelParticipants = getActiveParticipants();
                 } else {
@@ -4030,6 +4020,9 @@ function subscribeAppStateFromCloud() {
             if (wheelModal && wheelModal.style.display === 'flex') {
                 processPendingParticipants();
             }
+            
+            // Сбрасываем сессию рулетки, чтобы при следующем открытии загрузился обновленный список
+            rouletteSessionActive = false;
             
             // Полностью останавливаем рулетку и её отложенные переходы при выходе.
             stopWheelSpin();
