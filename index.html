@@ -2805,8 +2805,8 @@ function subscribeAppStateFromCloud() {
                     viewerFirstSeenAt.set(viewerKey, Date.now());
                 }
 
-                if (!userMessages[user]) userMessages[user] = [];
-                userMessages[user].push({ time, text: msg });
+                if (!userMessages[viewerKey]) userMessages[viewerKey] = [];
+                userMessages[viewerKey].push({ time, text: msg });
                 if (currentWinner && viewerKey === currentWinner.trim().toLowerCase()) {
                     updateWinnerMessageCount();
                 }
@@ -3384,7 +3384,8 @@ function subscribeAppStateFromCloud() {
             const messageCountLabel = document.getElementById('win-message-count');
             if (messageCountLabel) messageCountLabel.innerText = 'СООБЩЕНИЙ: ' + getUserMessageCount(name);
             const hCont = document.getElementById('win-chat-history');
-            hCont.innerHTML = (userMessages[name] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
+            const winnerKeyLC = String(name || '').trim().toLowerCase();
+            hCont.innerHTML = (userMessages[winnerKeyLC] || []).map(m => `<div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.03); font-size:12px;"><small style="color:#555;">${m.time}</small> ${m.text}</div>`).reverse().join('');
             let s = 0;
             clearInterval(window.winInt);
             clearInterval(window.winPresenceInt);
