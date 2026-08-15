@@ -1620,6 +1620,11 @@
                 <div class="menu-wave wave-b"></div>
             </div>
             <div style="flex: 1;"></div>
+            <div id="menu-image-container" style="margin-bottom: 12px; position: relative; border: 1px dashed var(--accent-neon-blue); border-radius: 12px; padding: 8px; background: rgba(255,255,255,0.02); cursor: pointer; text-align: center;" onclick="handleMenuImageClick()">
+<img id="menu-image-preview" alt="Картинка над сбросом" style="display: none; width: 100%; height: 240px; object-fit: cover; border-radius: 8px;">
+                <div id="menu-image-placeholder" style="color: #64748b; font-size: 11px; padding: 12px; letter-spacing: 1px; text-transform: uppercase;">📷 Нажмите, чтобы вставить картинку</div>
+            </div>
+            <input type="file" id="menu-image-upload" accept="image/*" style="display:none;" onchange="handleMenuImageUpload(event)">
             <button class="btn-main" onclick="resetAll()">Сброс участников</button>
             <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">+</span></button>
             <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
@@ -1633,7 +1638,25 @@
             <button class="btn-main" onclick="openStats()">АНАЛИТИКА ПРОЕКТОВ</button>
             <button class="btn-main" onclick="openSiteSettings()">АДМИН ПАНЕЛЬ</button>
             <button class="btn-main" onclick="openHistory()">ИСТОРИЯ ВЫПАДЕНИЙ</button>
-            <div style="margin-top: auto;">
+        </div>
+        <div class="panel panel-with-bg" style="padding: 15px;">
+            <div class="animated-header" id="participation-header">ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ!</div>
+            <div class="middle-split">
+                <div class="red-participants">
+                    <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
+                    <div id="full-participants-list"></div>
+                    <button class="btn-main" style="margin: 10px 12px; width: calc(100% - 24px);" onclick="copyParticipants()">СКОПИРОВАТЬ УЧАСТНИКОВ</button>
+                </div>
+                <div class="orange-chat">
+                    <h3>TWITCH CHAT VADYMS22</h3>
+                    <div class="chat-container">
+                        <iframe id="twitch-chat-frame" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-with-bg">
+            <div style="margin-bottom: 15px;">
                 <div id="timer" class="timer-display" onclick="enableTimerEdit()">00:10:00</div>
                 <input type="text" id="timer-input" style="display:none; width: 100%; background: #000; color: #ff1493; border: 1px solid #ff1493; font-size: 30px; text-align: center;">
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;">
@@ -1674,24 +1697,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="panel panel-with-bg" style="padding: 15px;">
-            <div class="animated-header" id="participation-header">ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ!</div>
-            <div class="middle-split">
-                <div class="red-participants">
-                    <h4>СПИСОК УЧАСТНИКОВ <span id="user-count" style="font-size: 18px; color: var(--accent-neon-blue); font-weight: 800;">0</span></h4>
-                    <div id="full-participants-list"></div>
-                    <button class="btn-main" style="margin: 10px 12px; width: calc(100% - 24px);" onclick="copyParticipants()">СКОПИРОВАТЬ УЧАСТНИКОВ</button>
-                </div>
-                <div class="orange-chat">
-                    <h3>TWITCH CHAT VADYMS22</h3>
-                    <div class="chat-container">
-                        <iframe id="twitch-chat-frame" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write"></iframe>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="panel panel-with-bg">
             <h3 style="margin:0 0 15px 0; color: var(--accent-neon-blue); text-shadow: none;">ТОП (ВЫВОДЫ)</h3>
             <div class="leaderboard-table-wrap" id="leaderboard-table-wrap">
                 <table class="leader-summary-table" aria-label="Топ участников по выводам">
@@ -1707,6 +1712,11 @@
             <div style="margin-top: 12px;">
                 <input type="text" id="leaderboard-search" placeholder="Поиск по нику..." style="width: 100%; padding: 10px 12px; background: var(--dark-purple); border: 1px solid var(--accent-neon-blue); border-radius: 8px; color: var(--soft-light); font-size: 13px; box-sizing: border-box;" oninput="searchLeaderboard(this.value)">
             </div>
+            <div id="top-image-container" style="margin-top: 12px; position: relative; border: 1px dashed var(--accent-neon-blue); border-radius: 12px; padding: 8px; background: rgba(255,255,255,0.02); cursor: pointer; text-align: center;" onclick="handleTopImageClick()">
+<img id="top-image-preview" alt="Картинка под топом" style="display: none; width: 100%; height: 240px; object-fit: cover; border-radius: 8px;">
+                <div id="top-image-placeholder" style="color: #64748b; font-size: 11px; padding: 12px; letter-spacing: 1px; text-transform: uppercase;">📷 Нажмите, чтобы вставить картинку</div>
+            </div>
+            <input type="file" id="top-image-upload" accept="image/*" style="display:none;" onchange="handleTopImageUpload(event)">
             <div onclick="openAdminLogin()" style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:160px; height:22px; cursor:default; z-index:10000; background:transparent; border:none; outline:none;"></div>
         </div>
     </div>
@@ -4630,6 +4640,113 @@ function subscribeAppStateFromCloud() {
             closeModals();
         }
 
+        // ===== IMAGE UPLOAD FUNCTIONS =====
+        function handleTopImageClick() {
+            const img = document.getElementById('top-image-preview');
+            if (img && img.style.display === 'block') {
+                removeTopImage();
+            } else {
+                document.getElementById('top-image-upload').click();
+            }
+        }
+
+        function handleMenuImageClick() {
+            const img = document.getElementById('menu-image-preview');
+            if (img && img.style.display === 'block') {
+                removeMenuImage();
+            } else {
+                document.getElementById('menu-image-upload').click();
+            }
+        }
+
+        function handleTopImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('Выберите файл изображения');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Размер файла не должен превышать 2 МБ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('top-image-preview');
+                const placeholder = document.getElementById('top-image-placeholder');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                localStorage.setItem('bot_top_image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function handleMenuImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                alert('Выберите файл изображения');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Размер файла не должен превышать 2 МБ');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('menu-image-preview');
+                const placeholder = document.getElementById('menu-image-placeholder');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                localStorage.setItem('bot_menu_image', e.target.result);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function removeTopImage() {
+            const img = document.getElementById('top-image-preview');
+            const placeholder = document.getElementById('top-image-placeholder');
+            img.src = '';
+            img.style.display = 'none';
+            placeholder.style.display = 'block';
+            localStorage.removeItem('bot_top_image');
+        }
+
+        function removeMenuImage() {
+            const img = document.getElementById('menu-image-preview');
+            const placeholder = document.getElementById('menu-image-placeholder');
+            img.src = '';
+            img.style.display = 'none';
+            placeholder.style.display = 'block';
+            localStorage.removeItem('bot_menu_image');
+        }
+
+        function loadTopImage() {
+            const savedImage = localStorage.getItem('bot_top_image');
+            if (savedImage) {
+                const img = document.getElementById('top-image-preview');
+                const placeholder = document.getElementById('top-image-placeholder');
+                img.src = savedImage;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        }
+
+        function loadMenuImage() {
+            const savedImage = localStorage.getItem('bot_menu_image');
+            if (savedImage) {
+                const img = document.getElementById('menu-image-preview');
+                const placeholder = document.getElementById('menu-image-placeholder');
+                img.src = savedImage;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            }
+        }
+
         // ===== SOUND SELECTOR FUNCTIONS =====
         let selectedTimerSound = localStorage.getItem('bot_timer_sound') || 'bell';
         let soundPopupOpen = false;
@@ -4881,6 +4998,8 @@ function subscribeAppStateFromCloud() {
                 img.style.display = 'inline-block';
                 fallback.style.display = 'none';
             }
+            loadTopImage();
+            loadMenuImage();
         });
     </script>
 
