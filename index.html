@@ -1738,10 +1738,9 @@
                 <div class="menu-wave wave-a"></div>
                 <div class="menu-wave wave-b"></div>
             </div>
-            <div style="flex: 1;"></div>
-            <div id="menu-image-container" style="margin-bottom: 12px; position: relative; border: 1px dashed var(--accent-neon-blue); border-radius: 12px; padding: 8px; background: rgba(255,255,255,0.02); cursor: pointer; text-align: center;" onclick="handleMenuImageClick()">
-<img id="menu-image-preview" alt="Картинка над сбросом" style="display: none; width: 100%; height: 240px; object-fit: cover; border-radius: 8px;">
-                <div id="menu-image-placeholder" style="color: #64748b; font-size: 11px; padding: 12px; letter-spacing: 1px; text-transform: uppercase;">📷 Нажмите, чтобы вставить картинку</div>
+            <div id="menu-image-container" style="margin: 14px 0 12px; position: relative; border: 1px dashed var(--accent-neon-blue); border-radius: 12px; padding: 8px; background: rgba(255,255,255,0.02); cursor: pointer; text-align: center;" onclick="handleMenuImageClick()">
+<img id="menu-image-preview" alt="Картинка над сбросом" style="display: none; width: 100%; height: 720px; object-fit: cover; border-radius: 8px;">
+                <div id="menu-image-placeholder" style="color: #64748b; font-size: 11px; padding: 12px; letter-spacing: 1px; text-transform: uppercase; height: 650px; display: flex; align-items: center; justify-content: center; text-align: center;">📷 Нажмите, чтобы вставить картинку</div>
             </div>
             <input type="file" id="menu-image-upload" accept="image/*" style="display:none;" onchange="handleMenuImageUpload(event)">
             <button class="btn-main" onclick="resetAll()">Сброс участников</button>
