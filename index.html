@@ -1391,6 +1391,108 @@
             color: #ef4444;
             text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
         }
+        /* NEW HORIZONTAL ROULETTE (cells, left-to-right) */
+        #new-roulette-modal .modal-content {
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 780px;
+            max-width: 94vw;
+            padding: 36px 30px 30px;
+            box-sizing: border-box;
+        }
+        .new-roulette-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent-neon-blue);
+        }
+        .new-roulette-count {
+            color: #94a3b8;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .new-roulette-stage {
+            position: relative;
+            width: 100%;
+            padding-top: 46px;
+            box-sizing: border-box;
+        }
+        .new-roulette-arrow {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 5;
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 42px solid #fff;
+            filter: drop-shadow(0 0 10px rgba(255, 20, 147, 0.8));
+        }
+        .new-roulette-window {
+            position: relative;
+            overflow: hidden;
+            width: 648px;
+            height: 130px;
+            margin: 0 auto;
+            background: #0b1220;
+            border: 2px solid var(--accent-neon-blue);
+            border-radius: 16px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+        }
+        .new-roulette-strip {
+            position: relative;
+            display: flex;
+            height: 100%;
+            will-change: transform;
+        }
+        .new-roulette-cell {
+            flex: 0 0 120px;
+            height: 100%;
+            box-sizing: border-box;
+            margin-right: 12px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255,255,255,0.14);
+            color: #fff;
+            font-weight: 700;
+            font-size: 14px;
+            word-break: break-word;
+            text-align: center;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .new-roulette-cell:last-child { margin-right: 0; }
+        .new-roulette-cell.is-winner {
+            background: linear-gradient(145deg, var(--accent-neon-blue), #a855f7);
+            border-color: #fff;
+            color: #fff;
+            transform: scale(1.08);
+            box-shadow: 0 0 26px var(--accent-neon-blue), 0 0 50px rgba(255,20,147,0.5);
+        }
+        .new-roulette-btn {
+            width: 260px;
+            margin: 0;
+            padding: 16px !important;
+            font-size: 15px !important;
+        }
+        #new-roulette-result {
+            min-height: 34px;
+            font-size: 22px;
+            font-weight: 900;
+            color: var(--accent-neon-blue);
+            text-align: center;
+            letter-spacing: 1px;
+            text-shadow: 0 0 18px rgba(255,20,147,0.6);
+        }
         /* SOUND SELECTOR STYLES */
         .sound-selector-btn {
             background: var(--accent-soft-bg) !important;
@@ -1627,7 +1729,13 @@
             <input type="file" id="menu-image-upload" accept="image/*" style="display:none;" onchange="handleMenuImageUpload(event)">
             <button class="btn-main" onclick="resetAll()">Сброс участников</button>
             <button class="btn-main btn-codeword" onclick="changeCodeword()">КОД: <span id="codeword-display">+</span></button>
-            <button class="btn-main btn-purple" onclick="openWheel()">РУЛЕТКА</button>
+            <div style="position:relative;">
+                <button class="btn-main btn-purple" onclick="toggleRouletteSelection()">РУЛЕТКА</button>
+                <div id="roulette-selection" style="position:absolute; bottom:calc(100% + 10px); left:0; right:0; display:flex; flex-direction:column; gap:8px; padding:10px; background:rgba(8,8,18,0.97); border:1px solid var(--accent-neon-blue); border-radius:12px; box-shadow:0 10px 32px rgba(0,0,0,0.75); opacity:0; transform:translateY(14px); pointer-events:none; transition:opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1); z-index:100;">
+                    <button class="btn-main btn-purple" style="padding:12px; margin-bottom:0; font-size:12px;" onclick="chooseStandardRoulette()">🎡 СТАНДАРТНАЯ</button>
+                    <button class="btn-main btn-purple" style="padding:12px; margin-bottom:0; font-size:12px;" onclick="chooseNewRoulette()">🆕 НОВАЯ</button>
+                </div>
+            </div>
             <div style="position:relative;">
                 <button class="btn-main btn-purple" onclick="toggleRollOptions()">БЫСТРЫЙ РОЛЛ</button>
                 <div id="roll-options" style="position:absolute; bottom:calc(100% + 10px); left:0; right:0; display:flex; gap:8px; padding:10px; background:rgba(8,8,18,0.97); border:1px solid var(--accent-neon-blue); border-radius:12px; box-shadow:0 10px 32px rgba(0,0,0,0.75); opacity:0; transform:translateY(14px); pointer-events:none; transition:opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1); z-index:100;">
@@ -4215,6 +4323,130 @@ function subscribeAppStateFromCloud() {
             }
         }
 
+        // ===== NEW HORIZONTAL ROULETTE (cells, left-to-right) =====
+        let newRoulettePool = [];
+        let newRouletteOrder = [];
+        let newRouletteSpinning = false;
+        const NR_CELL_W = 120;
+        const NR_GAP = 12;
+        const NR_VISIBLE = 5;
+        const NR_STEP = NR_CELL_W + NR_GAP;
+        const NR_WIN = NR_VISIBLE * NR_CELL_W + (NR_VISIBLE - 1) * NR_GAP;
+
+        function getRouletteSelection() {
+            return document.getElementById('roulette-selection');
+        }
+        function toggleRouletteSelection() {
+            const el = getRouletteSelection();
+            if (!el) return;
+            const open = el.style.opacity === '1';
+            el.style.opacity = open ? '0' : '1';
+            el.style.transform = open ? 'translateY(14px)' : 'translateY(0)';
+            el.style.pointerEvents = open ? 'none' : 'auto';
+        }
+        function hideRouletteSelection() {
+            const el = getRouletteSelection();
+            if (!el) return;
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(14px)';
+            el.style.pointerEvents = 'none';
+        }
+        function chooseStandardRoulette() { hideRouletteSelection(); openWheel(); }
+        function chooseNewRoulette() { hideRouletteSelection(); openNewRoulette(); }
+
+        function buildNewRouletteStrip() {
+            const pool = newRoulettePool;
+            const n = pool.length;
+            if (n === 0) return;
+            const repeats = 20;
+            newRouletteOrder = [];
+            for (let r = 0; r < repeats; r++) {
+                for (let i = 0; i < n; i++) {
+                    newRouletteOrder.push(pool[i]);
+                }
+            }
+            const wrap = document.getElementById('new-roulette-strip');
+            wrap.innerHTML = newRouletteOrder.map((nm, i) =>
+                `<div class="new-roulette-cell" data-index="${i}">${escapeHtml(nm)}</div>`
+            ).join('');
+            // Центрируем самую первую ячейку под стрелкой
+            wrap.style.transform = 'translateX(' + (NR_WIN / 2 - NR_CELL_W / 2) + 'px)';
+            const count = document.getElementById('new-roulette-pool-count');
+            if (count) count.innerText = 'Участников: ' + n;
+            const result = document.getElementById('new-roulette-result');
+            if (result) result.innerHTML = '---';
+        }
+
+        function openNewRoulette() {
+            let pool = (Array.isArray(wheelParticipants) && wheelParticipants.length)
+                ? wheelParticipants.slice()
+                : getActiveParticipants();
+            pool = filterBlacklistedNames(pool);
+            if (!pool.length) {
+                alert('Нет участников! Добавьте участников в розыгрыш.');
+                return;
+            }
+            newRoulettePool = pool;
+            buildNewRouletteStrip();
+            document.getElementById('new-roulette-modal').style.display = 'flex';
+        }
+
+        function closeNewRoulette() {
+            document.getElementById('new-roulette-modal').style.display = 'none';
+            newRouletteSpinning = false;
+        }
+
+        function spinNewRoulette() {
+            if (newRouletteSpinning) return;
+            if (!newRoulettePool || newRoulettePool.length === 0) {
+                alert('Нет участников!');
+                return;
+            }
+            const wrap = document.getElementById('new-roulette-strip');
+            const n = newRoulettePool.length;
+
+            const winner = pickRiggedWinner(newRoulettePool);
+            const baseIdx = newRoulettePool.indexOf(winner);
+            const copy = 6 + Math.floor(Math.random() * 4); // 6..9
+            const L = copy * n + baseIdx; // финальная ячейка (победитель)
+            const spins = 5 + Math.floor(Math.random() * 3); // 5..7 полных проходов
+            const travel = n * spins + Math.floor(Math.random() * n) + 1;
+            const startIndex = L + travel;
+
+            const center = NR_WIN / 2;
+            const Xstart = center - startIndex * NR_STEP - NR_CELL_W / 2;
+            const Xfinal = center - L * NR_STEP - NR_CELL_W / 2;
+            const duration = 4200;
+
+            newRouletteSpinning = true;
+            const startTime = performance.now();
+            wrap.querySelectorAll('.new-roulette-cell').forEach(c => c.classList.remove('is-winner'));
+            wrap.style.transform = 'translateX(' + Xstart + 'px)';
+            const result = document.getElementById('new-roulette-result');
+            result.innerHTML = '🎰 КРУТИМ...';
+            let lastTick = -1;
+
+            function frame(now) {
+                const p = Math.min((now - startTime) / duration, 1);
+                const ease = 1 - Math.pow(1 - p, 4);
+                const X = Xstart + (Xfinal - Xstart) * ease;
+                wrap.style.transform = 'translateX(' + X + 'px)';
+                const crossed = Math.floor((X - Xstart) / NR_STEP);
+                if (crossed !== lastTick) { lastTick = crossed; playTick(); }
+                if (p < 1) {
+                    requestAnimationFrame(frame);
+                } else {
+                    newRouletteSpinning = false;
+                    wrap.style.transform = 'translateX(' + Xfinal + 'px)';
+                    const cells = wrap.querySelectorAll('.new-roulette-cell');
+                    const el = cells[L];
+                    if (el) el.classList.add('is-winner');
+                    result.innerHTML = '🏆 Победитель: ' + escapeHtml(winner);
+                }
+            }
+            requestAnimationFrame(frame);
+        }
+
         // ===== SIMPLE PERCENTAGE ROULETTE (100 SEGMENTS) =====
         let simpleRouletteSpinning = false;
         let rouletteOptions = []; // [{sum: 100, percent: 20}, {sum: 500, percent: 10}, ...]
@@ -4476,6 +4708,23 @@ function subscribeAppStateFromCloud() {
         }
 
     </script>
+
+    <!-- NEW HORIZONTAL ROULETTE MODAL -->
+    <div id="new-roulette-modal" class="modal" style="z-index: 100010;">
+        <div class="modal-content">
+            <div class="close-x" onclick="closeNewRoulette()">&times;</div>
+            <div class="new-roulette-title">🎰 НОВАЯ РУЛЕТКА</div>
+            <div class="new-roulette-count" id="new-roulette-pool-count">Участников: 0</div>
+            <div class="new-roulette-stage">
+                <div class="new-roulette-arrow"></div>
+                <div class="new-roulette-window">
+                    <div id="new-roulette-strip" class="new-roulette-strip"></div>
+                </div>
+            </div>
+            <div id="new-roulette-result">---</div>
+            <button class="btn-main btn-purple new-roulette-btn" onclick="spinNewRoulette()">🎡 КРУТИТЬ</button>
+        </div>
+    </div>
 
     <!-- SIMPLE PERCENTAGE ROULETTE MODAL -->
     <div id="simple-roulette-modal" class="modal" style="z-index: 100001;">
