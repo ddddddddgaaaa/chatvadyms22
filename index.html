@@ -4402,10 +4402,12 @@ function subscribeAppStateFromCloud() {
         }
 
         function openNewRoulette() {
-            let pool = (Array.isArray(wheelParticipants) && wheelParticipants.length)
-                ? wheelParticipants.slice()
-                : getActiveParticipants();
-            pool = filterBlacklistedNames(pool);
+            // Всегда берём ВСЕХ активных участников (без ограничений),
+            // чтобы новая рулетка не зависела от сохранённого списка wheelParticipants.
+            let pool = filterBlacklistedNames(getActiveParticipants());
+            if (!pool.length && Array.isArray(wheelParticipants) && wheelParticipants.length) {
+                pool = filterBlacklistedNames(wheelParticipants.slice());
+            }
             if (!pool.length) {
                 alert('Нет участников! Добавьте участников в розыгрыш.');
                 return;
