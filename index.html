@@ -1444,6 +1444,7 @@
             border: 2px solid var(--accent-neon-blue);
             border-radius: 16px;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+            transition: opacity 0.18s ease;
         }
         .new-roulette-strip {
             position: relative;
@@ -4344,6 +4345,7 @@ function subscribeAppStateFromCloud() {
         let newRouletteOrder = [];
         let newRouletteSpinning = false;
         let newRouletteWinner = null;
+        let newRouletteOpenIndex = 0;
         const NR_CELL_W = 120;
         const NR_GAP = 12;
         const NR_VISIBLE = 5;
@@ -4378,7 +4380,7 @@ function subscribeAppStateFromCloud() {
             newRouletteWinner = null;
             const confirmBtn = document.getElementById('new-roulette-confirm-btn');
             if (confirmBtn) confirmBtn.style.display = 'none';
-            const repeats = 20;
+            const repeats = 22;
             newRouletteOrder = [];
             for (let r = 0; r < repeats; r++) {
                 for (let i = 0; i < n; i++) {
@@ -4389,8 +4391,11 @@ function subscribeAppStateFromCloud() {
             wrap.innerHTML = newRouletteOrder.map((nm, i) =>
                 `<div class="new-roulette-cell" data-index="${i}">${escapeHtml(nm)}</div>`
             ).join('');
-            // Центрируем самую первую ячейку под стрелкой
-            wrap.style.transform = 'translateX(' + (NR_WIN / 2 - NR_CELL_W / 2) + 'px)';
+            // Ставим ленту в «дальнюю левую» позицию — чтобы прокрутка шла строго слева направо и без рывка
+            newRouletteOpenIndex = Math.max(10, Math.floor(repeats * n * 0.9));
+            wrap.style.transform = 'translateX(' + (NR_WIN / 2 - newRouletteOpenIndex * NR_STEP - NR_CELL_W / 2) + 'px)';
+            const winEl = document.getElementById('new-roulette-window');
+            if (winEl) winEl.style.opacity = '1';
             const count = document.getElementById('new-roulette-pool-count');
             if (count) count.innerText = 'Участников: ' + n;
             const result = document.getElementById('new-roulette-result');
@@ -4428,11 +4433,10 @@ function subscribeAppStateFromCloud() {
             const winner = pickRiggedWinner(newRoulettePool);
             newRouletteWinner = winner;
             const baseIdx = newRoulettePool.indexOf(winner);
-            const copy = 6 + Math.floor(Math.random() * 4); // 6..9
+            const copy = 2 + Math.floor(Math.random() * 4); // 2..5
             const L = copy * n + baseIdx; // финальная ячейка (победитель)
-            const spins = 5 + Math.floor(Math.random() * 3); // 5..7 полных проходов
-            const travel = n * spins + Math.floor(Math.random() * n) + 1;
-            const startIndex = L + travel;
+            // Прокрутка строго слева направо: стартуем с дальне-левой позиции, доехаем до победителя
+            const startIndex = newRouletteOpenIndex;
 
             const center = NR_WIN / 2;
             const Xstart = center - startIndex * NR_STEP - NR_CELL_W / 2;
@@ -4442,14 +4446,19 @@ function subscribeAppStateFromCloud() {
             const duration = Math.max(1000, durSec * 1000);
 
             newRouletteSpinning = true;
+            const winEl = document.getElementById('new-roulette-window');
             const confirmBtn = document.getElementById('new-roulette-confirm-btn');
             if (confirmBtn) confirmBtn.style.display = 'none';
+            // Короткое затемнение при старте скрывает повторную переустановку позиции между спинами,
+            // чтобы простая прокрутка всегда читалась как «слева направо»
+            if (winEl) winEl.style.opacity = '0';
             const startTime = performance.now();
             wrap.querySelectorAll('.new-roulette-cell').forEach(c => c.classList.remove('is-winner'));
             wrap.style.transform = 'translateX(' + Xstart + 'px)';
             const result = document.getElementById('new-roulette-result');
             result.innerHTML = '🎰 КРУТИМ...';
             let lastTick = -1;
+            requestAnimationFrame(() => { if (winEl) winEl.style.opacity = '1'; });
 
             function frame(now) {
                 const p = Math.min((now - startTime) / duration, 1);
