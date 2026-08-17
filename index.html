@@ -1773,6 +1773,11 @@
                 </div>
                 <div class="orange-chat">
                     <h3>TWITCH CHAT VADYMS22</h3>
+                    <div style="margin: 0 15px 12px; padding: 10px 16px; border: 1px solid var(--accent-neon-blue); border-radius: 12px; background: linear-gradient(135deg, rgba(255,20,147,0.14), rgba(168,85,247,0.14)); font-family: 'Orbitron','Inter',sans-serif; text-align: center; line-height: 1.7;">
+                        <div style="color: var(--accent-neon-blue); font-weight: 800; letter-spacing: 1px;">САЙТ: MAGIC-DROP.WIN</div>
+                        <div style="color: #f59e0b; font-weight: 800; letter-spacing: 1px;">ПРОМО: MILKA</div>
+                        <div style="color: #22c55e; font-weight: 800; letter-spacing: 1px;">БОНУС: +25%</div>
+                    </div>
                     <div class="chat-container">
                         <iframe id="twitch-chat-frame" title="Twitch chat for vadyms22" loading="lazy" allow="clipboard-write"></iframe>
                     </div>
@@ -5247,79 +5252,9 @@ function subscribeAppStateFromCloud() {
 
     </script>
 
-    <!-- Promo badge -->
-    <div id="promo-badge" style="
-        position: fixed;
-        bottom: 80px;
-        right: 24px;
-        z-index: 10000;
-        background: rgba(15, 23, 42, 0.95);
-        border: 1px solid var(--accent-neon-blue);
-        border-radius: 16px;
-        padding: 14px 18px;
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        font-family: 'Orbitron', 'Inter', sans-serif;
-        font-size: 13px;
-        box-shadow: 0 0 25px rgba(255, 20, 147, 0.35), inset 0 0 12px rgba(0,0,0,0.5);
-        backdrop-filter: blur(10px);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    " onmouseover="this.style.transform='scale(1.03)'; this.style.boxShadow='0 0 35px rgba(255, 20, 147, 0.55), inset 0 0 18px rgba(0,0,0,0.5)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 25px rgba(255, 20, 147, 0.35), inset 0 0 12px rgba(0,0,0,0.5)'" onclick="openPromoIconUpload()">
-        <img id="promo-badge-img" src="https://2ip.ru/a/magic-drop.win/" alt="MagicDrop" style="width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex-shrink:0;" onerror="this.style.display='none'; document.getElementById('promo-fallback-icon').style.display='inline-flex'">
-        <span id="promo-fallback-icon" style="display:none; width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,var(--accent-neon-blue),#a855f7); align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:12px; flex-shrink:0;">MD</span>
-        <div style="display:flex; flex-direction:column; gap:4px;">
-            <span style="color:var(--accent-neon-blue); font-weight:800; letter-spacing:0.8px; white-space:nowrap;">САЙТ: MAGIC-DROP.WIN</span>
-            <span style="color:#f59e0b; font-weight:800; letter-spacing:0.8px; white-space:nowrap;">ПРОМО: MILKA</span>
-            <span style="color:#22c55e; font-weight:800; letter-spacing:0.8px; white-space:nowrap;">БОНУС: +25%</span>
-        </div>
-    </div>
-
-    <input type="file" id="promo-icon-upload" accept="image/*" style="display:none;" onchange="handlePromoIconUpload(event)">
-
     <script>
-        function openPromoIconUpload() {
-            document.getElementById('promo-icon-upload').click();
-        }
-
-        function handlePromoIconUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            if (!file.type.startsWith('image/')) {
-                alert('Выберите файл изображения');
-                return;
-            }
-
-            if (file.size > 1024 * 1024) {
-                alert('Размер файла не должен превышать 1 МБ');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = document.getElementById('promo-badge-img');
-                const fallback = document.getElementById('promo-fallback-icon');
-                img.src = e.target.result;
-                img.style.display = 'inline-block';
-                fallback.style.display = 'none';
-                localStorage.setItem('promo_badge_icon', e.target.result);
-            };
-            reader.readAsDataURL(file);
-            event.target.value = '';
-        }
-
-        // Load saved icon on page load
+        // Load saved images on page load
         window.addEventListener('DOMContentLoaded', function() {
-            const savedIcon = localStorage.getItem('promo_badge_icon');
-            if (savedIcon) {
-                const img = document.getElementById('promo-badge-img');
-                const fallback = document.getElementById('promo-fallback-icon');
-                img.src = savedIcon;
-                img.style.display = 'inline-block';
-                fallback.style.display = 'none';
-            }
             loadTopImage();
             loadMenuImage();
         });
