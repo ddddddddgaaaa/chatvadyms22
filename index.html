@@ -865,7 +865,7 @@
             font-size: 14.5px;
             line-height: 1.65;
             color: #e0e7ff;
-            max-height: calc(20 * 36px);
+            max-height: none;
         }
         #full-participants-list div {
             padding: 5px 10px;
@@ -4345,6 +4345,7 @@ function subscribeAppStateFromCloud() {
         let newRouletteSpinning = false;
         let newRouletteWinner = null;
         let newRouletteOpenIndex = 0;
+        let newRouletteSpinToken = 0;
         const NR_CELL_W = 120;
         const NR_GAP = 12;
         const NR_VISIBLE = 5;
@@ -4402,12 +4403,13 @@ function subscribeAppStateFromCloud() {
         }
 
         function openNewRoulette() {
-            // Всегда берём ВСЕХ активных участников (без ограничений),
-            // чтобы новая рулетка не зависела от сохранённого списка wheelParticipants.
-            let pool = filterBlacklistedNames(getActiveParticipants());
-            if (!pool.length && Array.isArray(wheelParticipants) && wheelParticipants.length) {
-                pool = filterBlacklistedNames(wheelParticipants.slice());
-            }
+            // Объединяем «активных» участников (писали кодовое в чате) И импортированный
+            // список рулетки (wheelParticipants), без ограничений. Так новая рулетка
+            // учитывает всех: например 10 активных + импортированные 21 = все 21.
+            const active = getActiveParticipants();
+            const imported = (Array.isArray(wheelParticipants) && wheelParticipants.length) ? wheelParticipants : [];
+            let pool = Array.from(new Set(active.concat(imported)));
+            pool = filterBlacklistedNames(pool);
             if (!pool.length) {
                 alert('Нет участников! Добавьте участников в розыгрыш.');
                 return;
@@ -4418,8 +4420,10 @@ function subscribeAppStateFromCloud() {
         }
 
         function closeNewRoulette() {
-            document.getElementById('new-roulette-modal').style.display = 'none';
+            // Останавливаем прокрутку, если она идёт
+            newRouletteSpinToken += 1;
             newRouletteSpinning = false;
+            document.getElementById('new-roulette-modal').style.display = 'none';
         }
 
         function spinNewRoulette() {
@@ -4447,6 +4451,7 @@ function subscribeAppStateFromCloud() {
             const duration = Math.max(1000, durSec * 1000);
 
             newRouletteSpinning = true;
+            const spinToken = ++newRouletteSpinToken;
             const winEl = document.getElementById('new-roulette-window');
             const confirmBtn = document.getElementById('new-roulette-confirm-btn');
             if (confirmBtn) confirmBtn.style.display = 'none';
@@ -4462,6 +4467,9 @@ function subscribeAppStateFromCloud() {
             requestAnimationFrame(() => { if (winEl) winEl.style.opacity = '1'; });
 
             function frame(now) {
+                // Остановка: закрыли крестиком / Esc / сменился спин — выходим из цикла
+                if (spinToken !== newRouletteSpinToken || !newRouletteSpinning ||
+                    document.getElementById('new-roulette-modal').style.display !== 'flex') return;
                 const p = Math.min((now - startTime) / duration, 1);
                 const ease = 1 - Math.pow(1 - p, 4);
                 const X = Xstart + (Xfinal - Xstart) * ease;
