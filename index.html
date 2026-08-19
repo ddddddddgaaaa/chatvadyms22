@@ -1906,19 +1906,6 @@
             </div>
         </div>
     </div>
-    <div id="auth-modal" class="auth-modal" style="display: flex;">
-        <div class="auth-card">
-            <h2>Выбор канала</h2>
-            <p>Укажи канал Twitch для подключения чата.</p>
-            <div class="auth-form">
-                <input type="text" id="auth-channel-input" placeholder="Канал Twitch без @" autocomplete="off">
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-main btn-purple" type="button" onclick="applyAuthSettings()">ПОДКЛЮЧИТЬ</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="login-modal" class="auth-modal">
         <div class="auth-card">
             <h2>Авторизация</h2>
@@ -2879,6 +2866,16 @@ function subscribeAppStateFromCloud() {
             const errorEl = document.getElementById('login-error');
             
             if (username === 'amil' && password === 'a1b2') {
+                // Вход успешен — автоматически подключаем канал Twitch wokomilka
+                currentChannelName = 'wokomilka';
+                saveToStorage();
+                updateChannelUi();
+                initTwitchEmbed();
+                connectTwitchSocket();
+                try { loadAppStateFromCloud(); subscribeAppStateFromCloud(); } catch(e) { console.warn('handleLogin cloud sync:', e); }
+                if (cloudReady && cloudDb) {
+                    subscribeParticipantsFromCloud();
+                }
                 document.getElementById('login-modal').style.display = 'none';
             } else {
                 errorEl.textContent = 'Неверный логин или пароль';
@@ -4193,9 +4190,6 @@ function subscribeAppStateFromCloud() {
             const autos = document.getElementById('autoskip-checkbox');
             if (autos) autos.addEventListener('change', (e) => { autoSpinEnabled = !!e.target.checked; });
         }, 200);
-        document.getElementById('auth-channel-input').addEventListener('keydown', (event) => {
-            if (event.key === 'Enter') applyAuthSettings();
-        });
         document.getElementById('login-username').addEventListener('keydown', (event) => {
             if (event.key === 'Enter') document.getElementById('login-password').focus();
         });
@@ -4226,9 +4220,9 @@ function subscribeAppStateFromCloud() {
         setImportFormat('csv');
         applyTheme(localStorage.getItem('bot_theme_name') || 'pink');
         updateChannelUi();
-        // Show auth modal (channel selection) on page load
-        document.getElementById('auth-modal').style.display = 'flex';
-        document.getElementById('auth-channel-input').focus();
+        // Показываем окно авторизации при загрузке страницы (канал подставляется автоматически после входа)
+        document.getElementById('login-modal').style.display = 'flex';
+        document.getElementById('login-username').focus();
 
         // ============================================================
         // ADMIN PANEL
