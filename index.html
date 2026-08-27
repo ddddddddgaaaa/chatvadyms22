@@ -1980,6 +1980,13 @@
                     <div id="lotto-tooltip"></div>
                 </div>
                 <div id="lotto-result" class="lotto-result">---</div>
+                <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span style="font-size:12px; color:#888; letter-spacing:1px;">ПЕРЕМЕШИВАНИЕ:</span>
+                    <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:14px; min-width:36px;" onclick="adjustLottoDur(-1)">-</button>
+                    <input type="number" id="lotto-dur-input" min="1" max="20" value="5" style="width:54px; padding:4px; background:#0b1220; border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; border-radius:4px; text-align:center; font-size:16px;" onchange="setLottoDur(this.value)">
+                    <button class="btn-main" style="padding:5px 10px; margin-bottom:0; font-size:14px; min-width:36px;" onclick="adjustLottoDur(1)">+</button>
+                    <span style="font-size:12px; color:#888;">сек</span>
+                </div>
                 <button id="lotto-spin-btn" class="btn-main btn-purple" style="width:260px; padding:16px; font-size:17px;" onclick="startLottoSpin()">КРУТИТЬ! 🎱</button>
                 <button id="lotto-confirm-btn" class="btn-main" style="width:260px; padding:15px; font-size:16px; display:none; background:rgba(34,197,94,0.15); border-color:#22c55e; color:#22c55e; letter-spacing:2px;" onclick="confirmLotto()">✅ ПОДТВЕРДИТЬ</button>
             </div>
@@ -4532,8 +4539,18 @@ function subscribeAppStateFromCloud() {
         // ================= ЛОТТО =================
         const LOTTO_COLORS = ['#ff1493', '#a855f7', '#38bdf8', '#22c55e', '#f59e0b', '#ef4444', '#14b8a6', '#eab308'];
         let lottoPool = [], lottoBalls = [], lottoAnimId = null;
-        let lottoMode = 'idle'; // idle | spin | settle | done
+        let lottoMode = 'idle'; // idle | spin | settle | doors | eject | done
         let lottoModeStart = 0, lottoWinnerIdx = null;
+        let lottoDurSec = 5;
+
+        function adjustLottoDur(delta) {
+            setLottoDur(lottoDurSec + delta);
+        }
+        function setLottoDur(val) {
+            lottoDurSec = Math.max(1, Math.min(20, parseInt(val, 10) || 5));
+            const input = document.getElementById('lotto-dur-input');
+            if (input) input.value = lottoDurSec;
+        }
 
         let lottoHoverIdx = null;
 
@@ -4652,11 +4669,23 @@ function subscribeAppStateFromCloud() {
                 // ---- физика ----
                 if (lottoMode === 'spin') {
                     const elapsed = (now - lottoModeStart) / 1000;
-                    const duration = 5;
-                    const power = Math.max(0, 1 - elapsed / duration) * 2.2;
+                    const duration = lottoDurSec;
+                    // плавный разгон и торможение (синус по всему периоду)
+                    const power = Math.sin(Math.PI * Math.min(elapsed / duration, 1)) * 2.2;
+                    const t = elapsed * 1.4;
                     lottoBalls.forEach(b => {
-                        b.vx += (Math.random() * 2 - 1) * power * 1.8;
-                        b.vy += (Math.random() * 2 - 1) * power * 1.8;
+                        // вихревое (тангенциальное) поле — шарики плавно циркулируют по кругу
+                        const ang = Math.atan2(b.y - cy, b.x - cx);
+                        const swirl = power * 0.55 * (0.65 + 0.35 * Math.sin(t + b.num * 1.7));
+                        b.vx += -Math.sin(ang) * swirl;
+                        b.vy += Math.cos(ang) * swirl;
+                        // мягкая пульсация от центра / к центру
+                        const pulse = power * 0.4 * Math.sin(t * 1.9 + b.num * 2.3);
+                        b.vx += ((b.x - cx) / 200) * pulse;
+                        b.vy += ((b.y - cy) / 200) * pulse;
+                        // совсем лёгкий шум для живости
+                        b.vx += (Math.random() * 2 - 1) * power * 0.12;
+                        b.vy += (Math.random() * 2 - 1) * power * 0.12;
                     });
                     if (elapsed >= duration) { lottoMode = 'settle'; lottoModeStart = now; }
                 } else if (lottoMode === 'settle') {
