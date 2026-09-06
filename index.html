@@ -302,6 +302,18 @@
             box-shadow: none;
             color: var(--soft-light);
         }
+        .btn-cloud {
+            border-color: #6366f1;
+            color: #a5b4fc;
+            text-shadow: none;
+            box-shadow: none;
+            background: rgba(99, 102, 241, 0.12);
+        }
+        .btn-cloud:hover {
+            background: rgba(99, 102, 241, 0.25);
+            box-shadow: none;
+            color: #c7d2fe;
+        }
         .btn-spin-mode.is-active-mode {
             background: var(--accent-hover-bg) !important;
             color: #ffffff !important;
@@ -1872,6 +1884,7 @@
             <button class="btn-main" onclick="openStats()">АНАЛИТИКА ПРОЕКТОВ</button>
             <button class="btn-main" onclick="openSiteSettings()">АДМИН ПАНЕЛЬ</button>
             <button class="btn-main" onclick="openHistory()">ИСТОРИЯ ВЫПАДЕНИЙ</button>
+            <button class="btn-main btn-cloud" onclick="openCloudModal()" style="padding:6px; font-size:10px; margin-bottom:4px;">☁️ Cloud: —</button>
         </div>
         <div class="panel panel-with-bg" style="padding: 15px;">
             <div class="animated-header" id="participation-header">ДЛЯ УЧАСТВИЯ В ПРОКАЧКЕ "<span id="header-codeword">+</span>" В ЧАТ!</div>
@@ -1957,6 +1970,7 @@
     </div>
     <div id="history-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 950px; height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Полная история выпадений</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th style="padding: 12px;">Дата</th><th style="padding: 12px;">Никнейм</th><th style="padding: 12px;">Telegram</th><th style="padding: 12px;">Проект</th><th style="padding: 12px;">Выводы (₽)</th><th style="padding: 12px;">Депы (₽)</th><th style="padding: 12px;">Рероллы</th><th style="padding: 12px;">Действие</th></tr></thead><tbody id="history-body"></tbody></table></div></div></div>
     <div id="stats-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 750px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0; text-shadow: none;">Статистика по сайтам</h2><div style="width: 100%; overflow-y: auto; margin-top: 20px;"><table class="stats-table" style="width: 100%; border-collapse: collapse;"><thead><tr><th>Проект / Сайт</th><th>Побед</th><th>Общ. Выводы (₽)</th><th>Общ. Депозиты (₽)</th><th>Действие</th></tr></thead><tbody id="stats-body"></tbody></table></div></div></div>
+    <div id="cloud-modal" class="modal"><div class="modal-content" style="flex-direction: column; min-width: 500px; max-height: 80vh;"><div class="close-x" onclick="closeModals()">&times;</div><h2 style="color: var(--accent-neon-blue); margin: 0 0 20px 0; text-shadow: none;">☁️ ЛОКАЛ ОБЛАКО</h2><div style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;"><div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:10px; padding:15px;"><h4 style="color:#a5b4fc; margin:0 0 10px 0; font-size:14px;">📥 СКАКАТЬ ДАННЫЕ</h4><p style="color:#94a3b8; font-size:12px; margin:0 0 10px 0;">Скачать топ (выводы) и/или всю статистику в JSON файл</p><button class="btn-main" style="width:100%; margin-bottom:8px;" onclick="downloadCloudData('all')">📦 ВСЁ (Топ + Статистика)</button><button class="btn-main" style="width:100%; margin-bottom:8px;" onclick="downloadCloudData('top')">🏆 Только ТОП (выводы)</button><button class="btn-main" style="width:100%;" onclick="downloadCloudData('stats')">📊 Только Вся Статистика</button></div><div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3); border-radius:10px; padding:15px;"><h4 style="color:#86efac; margin:0 0 10px 0; font-size:14px;">📤 ЗАГРУЗИТЬ ДАННЫЕ</h4><p style="color:#94a3b8; font-size:12px; margin:0 0 10px 0;">Загрузить ранее скачанный JSON файл для восстановления данных</p><input type="file" id="cloud-upload-input" accept=".json" style="display:none;" onchange="uploadCloudData(event)"><button class="btn-main" style="width:100%;" onclick="document.getElementById('cloud-upload-input').click()">📂 Выбрать файл для загрузки</button><div id="cloud-upload-status" style="margin-top:8px; font-size:12px; text-align:center;"></div></div><div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:15px;"><h4 style="color:#fca5a5; margin:0 0 10px 0; font-size:14px;">⚠️ ИНФОРМАЦИЯ</h4><p style="color:#94a3b8; font-size:12px; margin:0;">Текущие данные: <b id="cloud-leaders-count" style="color:var(--accent-neon-blue);">0</b> лидеров, <b id="cloud-history-count" style="color:var(--accent-neon-blue);">0</b> записей истории</p></div></div></div></div>
             <div id="wheel-modal" class="modal"><div class="modal-content"><div class="close-x" onclick="closeModals()">&times;</div><div class="wheel-container"><div class="wheel-arrow-container"><div class="wheel-arrow-pointer"></div><div id="wheel-nick-display" class="wheel-nick-display">---</div></div><canvas id="wheelCanvas" width="700" height="700"></canvas></div><div class="wheel-controls" style="width: 340px; display: flex; flex-direction: column; gap: 12px; margin-left: 20px;"><h3 style="margin: 0; text-align: center; color: var(--accent-neon-blue);">Настройки</h3><div id="elim-log" style="text-align: center; color: var(--accent-neon-blue); font-weight: bold; min-height: 20px; font-size: 14px;"></div><button class="btn-main" onclick="openImportParticipants()">ВСТАВИТЬ СПИСОК УЧАСТНИКОВ</button><button class="btn-main" style="background: rgba(239, 68, 68, 0.12); border-color: #ef4444; color: #ef4444;" onclick="resetWheelParticipants()">🗑️ СБРОСИТЬ УЧАСТНИКОВ</button><div style="display:flex; gap:8px;"><button id="mode-elim" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('elimination')">НА ВЫБЫВАНИЕ</button><button id="mode-normal" class="btn-main btn-purple btn-spin-mode" onclick="setSpinMode('normal')">ОБЫЧНЫЙ ВЫБОР</button></div><div style="text-align: center; margin: 10px 0;"><label style="font-size: 13px; color: #888;">Время (сек):</label>
 <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
     <button class="btn-main" style="padding:6px 10px; margin-bottom:0; font-size:14px; min-width:36px;" onclick="adjustDur(-1)">-</button>
@@ -2602,6 +2616,91 @@ function addSiteOptionFromInput() {
             renderRerollReasonsAdmin();
         }
 
+        // ===== ЛОКАЛ ОБЛАКО: СКАЧИВАНИЕ / ЗАГРУЗКА =====
+        function updateCloudButton() {
+            const btn = document.querySelector('.btn-cloud');
+            if (btn) btn.innerText = `☁️ Cloud: ${leaders.length} / ${globalHistory.length}`;
+        }
+        function openCloudModal() {
+            document.getElementById('cloud-modal').style.display = 'flex';
+            document.getElementById('cloud-leaders-count').innerText = leaders.length;
+            document.getElementById('cloud-history-count').innerText = globalHistory.length;
+            document.getElementById('cloud-upload-status').innerText = '';
+        }
+        function downloadCloudData(type) {
+            let data = {};
+            if (type === 'all') {
+                data = {
+                    leaders: leaders,
+                    globalHistory: globalHistory,
+                    participantProfiles: participantProfiles,
+                    exportedAt: new Date().toISOString(),
+                    type: 'full'
+                };
+            } else if (type === 'top') {
+                data = {
+                    leaders: leaders,
+                    exportedAt: new Date().toISOString(),
+                    type: 'top'
+                };
+            } else if (type === 'stats') {
+                data = {
+                    globalHistory: globalHistory,
+                    exportedAt: new Date().toISOString(),
+                    type: 'stats'
+                };
+            }
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const date = new Date().toISOString().slice(0, 10);
+            a.download = `local-cloud-${type}-${date}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        function uploadCloudData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const statusEl = document.getElementById('cloud-upload-status');
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    let loadedLeaders = 0;
+                    let loadedHistory = 0;
+                    if (data.leaders && Array.isArray(data.leaders)) {
+                        if (confirm(`Загрузить ТОП: ${data.leaders.length} лидеров?\n(Текущие данные будут заменены)`)) {
+                            leaders = data.leaders;
+                            loadedLeaders = leaders.length;
+                        }
+                    }
+                    if (data.globalHistory && Array.isArray(data.globalHistory)) {
+                        if (confirm(`Загрузить Историю: ${data.globalHistory.length} записей?\n(Текущие данные будут заменены)`)) {
+                            globalHistory = data.globalHistory;
+                            loadedHistory = globalHistory.length;
+                        }
+                    }
+                    if (data.participantProfiles && typeof data.participantProfiles === 'object') {
+                        participantProfiles = Object.assign({}, participantProfiles, data.participantProfiles);
+                    }
+                    saveToStorage();
+                    renderLeaderboard();
+                    statusEl.style.color = '#86efac';
+                    statusEl.innerText = `✅ Загружено: ${loadedLeaders} лидеров, ${loadedHistory} записей`;
+                    document.getElementById('cloud-leaders-count').innerText = leaders.length;
+                    document.getElementById('cloud-history-count').innerText = globalHistory.length;
+                } catch (err) {
+                    statusEl.style.color = '#fca5a5';
+                    statusEl.innerText = '❌ Ошибка: невалидный JSON файл';
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
         function removeSiteOption(enc) {
             const v = decodeURIComponent(enc);
             siteOptions = (siteOptions || []).filter(x => x !== v);
@@ -3181,6 +3280,7 @@ function subscribeAppStateFromCloud() {
             if (totalDepositEl) totalDepositEl.innerText = totalDeposits.toLocaleString() + ' ₽';
             if (totalWithdrawalEl) totalWithdrawalEl.innerText = totalWithdrawals.toLocaleString() + ' ₽';
             saveToStorage();
+            updateCloudButton();
         }
 
         function searchLeaderboard(query) {
@@ -5773,6 +5873,7 @@ function subscribeAppStateFromCloud() {
         window.addEventListener('DOMContentLoaded', function() {
             loadTopImage();
             loadMenuImage();
+            updateCloudButton();
         });
     </script>
 
